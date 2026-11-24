@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   audit_workflow_actions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -28,6 +28,14 @@ jobs:
         uses: ./.github/actions/setup-workflow-runtime
         with:
           setup-python: 'false'
+
+      - name: Install pinned YAML audit parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/dcoir-workflow-audit-venv"
+          "$RUNNER_TEMP/dcoir-workflow-audit-venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: -r .github/github_actions/tools/requirements-workflow-audit.txt
+          echo "$RUNNER_TEMP/dcoir-workflow-audit-venv/bin" >> "$GITHUB_PATH"
 
       - name: Check workflow action versions
         shell: bash
@@ -40,12 +48,6 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/github_actions/tools/check_workflow_consistency_drift.py
-
-      - name: Regenerate workflow inventory
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 .github/github_actions/tools/build_workflow_inventory.py
 
       - name: Check workflow inventory freshness
         shell: bash

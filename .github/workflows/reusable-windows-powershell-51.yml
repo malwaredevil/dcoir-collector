@@ -43,6 +43,13 @@ jobs:
             throw "Expected Windows PowerShell Desktop edition but found $edition."
           }
 
+      - name: Test authoritative collector source-part discovery
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\.github\scripts\tests\Test-CollectorSourcePartFiles.ps1
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Collector part discovery behavioral tests failed.'
+          }
+
       - name: Validate Windows PowerShell 5.1 parser compatibility
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\.github\dcoir_review\scripts\validate-windows-powershell-51.ps1

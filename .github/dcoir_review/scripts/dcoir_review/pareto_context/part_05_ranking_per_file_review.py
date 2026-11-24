@@ -1,3 +1,7 @@
+from dcoir_review.cross_file_contract_context import build_cross_file_contract_context
+from dcoir_review.git_fallback_source_proof import VERIFIER as _GIT_FALLBACK_VERIFIER
+
+
 def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
     max_inline = max(0, int(getattr(config, "max_inline_comments", 12)))
     if max_inline <= 0:
@@ -41,6 +45,16 @@ def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: An
     return selected
 
 
+def _truncate_prompt_for_budget(prompt: str, config: Any) -> str:
+    maximum = max(0, int(getattr(config, "max_prompt_chars", 120000)))
+    if len(prompt) <= maximum:
+        return prompt
+    if maximum <= len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER):
+        return prompt[:maximum]
+    keep = maximum - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
+    return prompt[:keep] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
+
+
 def build_per_file_review_prompt(
     pr: dict[str, Any],
     item: dict[str, Any],
@@ -60,6 +74,26 @@ def build_per_file_review_prompt(
     added_lines = added_diff_lines_for_path(diff, path)
     added_line_block = "\n".join(f"{line.line}: {line.text}" for line in added_lines[:80]) or "(no added lines parsed)"
     sentinel_block = hardened.risk_sentinel_block(path_sentinels, config) if path_sentinels else "No deterministic risk anchors detected for this file."
+    exact_head_evidence = item.get("_dcoir_exact_head_dependency_evidence", "")
+    if not isinstance(exact_head_evidence, str) or len(exact_head_evidence) > 2100:
+        exact_head_evidence = ""
+    cross_file_contract_context = build_cross_file_contract_context(
+        path, diff, max_chars=1050 if exact_head_evidence else 2200
+    )
+    coverage_verification_rules = ""
+    if "Coverage check (action-local, not a finding)" in exact_head_evidence:
+        coverage_verification_rules = (
+            "Mandatory source-coverage reasoning (not a presumed finding):\\n"
+            "1. Identify whether the analyzer discovers tracked source files or only "
+            "processes entries already present in a checked-in inventory.\\n"
+            "2. Identify evidence of fresh Git-tracked source discovery compared to "
+            "the checked-in inventory BEFORE analysis, with fail-closed behavior.\\n"
+            "3. Analyzer exit status and validation.success for listed targets "
+            "do not, alone, prove inventory completeness.\\n"
+            "4. If changed code creates a demonstrable omission path, anchor a "
+            "finding to its changed line. If evidence remains incomplete, state "
+            "the source-coverage uncertainty in summary rather than claim it verified.\\n"
+        )
     prompt = f"""
 Context mode: {review_mode}
 Per-file detector pass for `{path}`.
@@ -71,6 +105,11 @@ PR title: {base.sanitized_prompt_value(pr.get('title'), config)}
 Specialized review instructions:
 {file_specialization(path, file_text)}
 
+{cross_file_contract_context}
+
+{exact_head_evidence}
+
+{coverage_verification_rules}
 Review rules:
 - Review this single file deeply using the full file context and the file diff.
 - Return only high-signal findings that matter for correctness, security, validation, or DCOIR governance.
@@ -96,18 +135,24 @@ Full head-file context:
 ```{language_hint(path)}
 {visible_text}
 ```
-""".strip()
+    """.strip()
     prompt = base.sanitize_text(prompt, config)
-    if len(prompt) > config.max_prompt_chars:
-        prompt = prompt[: config.max_prompt_chars - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
-    return prompt
+    return _truncate_prompt_for_budget(prompt, config)
 
 
 def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
     head_sha = str(pr.get("head", {}).get("sha", "") or "")
     if not head_sha:
+        if any(
+            isinstance(item, dict)
+            and str(item.get("filename", "") or "").strip() == _GIT_FALLBACK_VERIFIER
+            and str(item.get("status", "") or "").strip() not in {"removed", "deleted"}
+            for item in files
+        ):
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
         return []
     contexts: list[dict[str, Any]] = []
+    verifier_context: dict[str, Any] | None = None
     for item in files:
         path = str(item.get("filename", "") or "").strip()
         status = str(item.get("status", "") or "").strip()
@@ -115,13 +160,27 @@ def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]
             continue
         try:
             file_text = fetch_pr_file_text(gh, path, head_sha)
-        except UnicodeDecodeError:
+        except Exception as exc:
+            if path == _GIT_FALLBACK_VERIFIER:
+                raise RuntimeError("git-fallback-verifier-context-unavailable") from exc
             continue
-        except Exception:
-            continue
-        contexts.append({"item": item, "path": path, "text": file_text})
+        if path == _GIT_FALLBACK_VERIFIER and (
+            not isinstance(file_text, str) or not file_text.strip()
+        ):
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
+        context = {"item": item, "path": path, "text": file_text}
+        contexts.append(context)
+        if path == _GIT_FALLBACK_VERIFIER:
+            verifier_context = context
     contexts.sort(key=lambda context: per_file_priority(context["item"], context["text"]))
-    return contexts[: max(0, int(getattr(config, "per_file_review_max_files", getattr(config, "deep_review_max_files", 8))))]
+    max_files = max(0, int(getattr(config, "per_file_review_max_files", getattr(config, "deep_review_max_files", 8))))
+    selected = contexts[:max_files]
+    if verifier_context is not None and verifier_context not in selected:
+        if max_files == 0:
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
+        selected = contexts[:max_files - 1] + [verifier_context]
+        selected.sort(key=lambda context: per_file_priority(context["item"], context["text"]))
+    return selected
 
 
 def review_single_file_context(
@@ -145,6 +204,14 @@ def review_single_file_context(
         {
             "path": path,
             "prompt_chars": len(prompt),
+            "cross_file_contract_cues_present": "Cross-file contract review cues" in prompt,
+            "exact_head_source_paths": list(context["item"].get("_dcoir_exact_head_dependency_paths", [])),
+            "source_coverage_guard_status": context["item"].get("_dcoir_source_coverage_guard", "not-applicable"),
+            # Audit only: missing/omitted dependencies are not validated source
+            # relationships and must not be reported as findings on their own.
+            "exact_head_dependency_diagnostics": dict(
+                context["item"].get("_dcoir_exact_head_dependency_diagnostics", {})
+            ),
             "risk_sentinel_count": len(path_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(path_sentinels) if path_sentinels else "",
         },
@@ -182,4 +249,3 @@ def compact_model_label(results: list[dict[str, Any]], fallback: str) -> str:
 
 def should_use_per_file_first_pass(review_mode: str, config: Any) -> bool:
     return bool(getattr(config, "per_file_first_pass_review", True)) and review_mode in {"first-pass-deep", "deep-forced"}
-

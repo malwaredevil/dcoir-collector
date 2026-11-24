@@ -3,7 +3,7 @@ from __future__ import annotations
 SCENARIOS = {
     'GeminiCollectorArtifactInterpretation': {
         'description': 'The stored Gemini source should explicitly acknowledge collector artifact interpretation, upload summary driven review, and narrower artifact-first upload behavior.',
-        'all_markers': ['collector artifact', 'upload summary'],
+        'all_markers': ['collector artifact', 'upload summary', 'targeted collection'],
         'any_marker_groups': [
             ['attachment budget manifest', 'collection scope', 'targeted collection plan', 'representative final_artifacts'],
         ],
@@ -38,16 +38,20 @@ SCENARIOS = {
     },
     'GeminiIOCEnrichmentTrigger': {
         'description': 'The stored Gemini source should make mixed-format IOC intake and downstream tool routing explicit.',
-        'all_markers': ['ioc', 'csv', 'pdf', 'docx'],
+        'all_markers': ['ioc', 'csv', 'pdf', 'docx', 'provenance'],
         'any_marker_groups': [
             ['kql', 'es/ql', 'osquery', 'response action', 'collector action'],
         ],
     },
     'GeminiOutputContractConsistency': {
         'description': 'The stored Gemini source should preserve the singular triage command contract and avoid vague filler or non-contract drift.',
-        'all_markers': ['singular triage command'],
+        'all_markers': [
+            'singular triage command',
+            'starter prompt 1',
+            'starter prompt 2',
+            'starter prompt 3',
+        ],
         'any_marker_groups': [
-            ['starter prompt 1', 'starter prompt 2', 'starter prompt 3'],
             ['operator', 'analyst'],
         ],
     },

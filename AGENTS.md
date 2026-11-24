@@ -18,6 +18,48 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 * GitHub Copilot review requests are operator-controlled. Do not request a Copilot review unless the operator explicitly approves the request or manually triggers that review.
 * Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current or future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit operator approval. If another rule says an internal review is the next gate, interpret that as the next gate to propose to the operator, not permission to post it automatically. See `.github/agent-governance/review_request_operator_approval.md`.
 
+## Mandatory small-batch execution (all agent runtimes)
+
+Small, bounded work batches are a permanent requirement for work on this repository, including ChatGPT WebUI/connector-only, Codex, Claude Code, Replit, and other agents. This is not a chat-specific preference and does not depend on a turnover file.
+
+* At the start of substantive work, retrieve the current repository instructions and live GitHub issue/PR state. Consult governed `ircore` preferences/readbacks where available; never assume a prior chat or uploaded turnover is required for resumption.
+* Break complex repairs into small, independently checkable steps. Default to **one to three related tool operations per batch**, or one short edit-plus-targeted-test batch. Avoid long chained mutations, huge unreviewed edits, unbounded commands, and tool calls likely to freeze or time out. Increase batch size only cautiously when evidence shows it is safe; retain an explicit bound.
+* For the **first coding, branch, or PR execution on a newly selected issue**, use a verified startup microtransaction: (1) read the live issue, `AGENTS.md`, work-item context, and exact default-branch SHA; (2) choose one small independent slice and create its branch at that explicit SHA, then compare the branch to its base; (3) make one guarded source change using a current blob SHA or equivalent native Git precondition, publish through the authorized lane, then read back the remote file, commit, and changed-file list; (4) create a Draft PR only after that readback, then verify its current head, Draft state, and first applicable fast-validation outcome (or record why none ran). Run these as separate bounded batches, not one chained creation/write/PR request. This sequence was exercised on issue #608 / PR #643 before being codified.
+* A **timeout, tool error, interrupted response, or uncertain write result** means state is unknown, not that the write failed. Before a retry or fallback, read GitHub for the existing branch, file blob, commit, PR, and run IDs; continue from the observed checkpoint. Never blindly repeat writes, review requests, chargeable jobs, or PR creation. If a connector fails, use an already-authorized alternate lane only after verifying the same immutable target and credentials boundary; do not invent local/remote publication claims.
+* After the first microtransaction, increment batch size only when evidence supports it. Keep each source mutation and targeted test independently verifiable, record exact SHA/run IDs and remaining gaps in the governed `ircore` work-item receipt (or GitHub when unavailable), and preserve the optional turnover. This protocol does not authorize workflow edits, autonomous agents, independent reviewer requests, Ready transitions, merges, issue closure, or relaxation of required validation.
+* For long tests, builds, provider calls, and GitHub Actions, start the operation once, record its job/run ID, and check it in separate bounded readback batches. Do not block the conversation waiting for completion, poll tightly, or trigger duplicate paid runs on uncertain status.
+* After each meaningful batch, read back the actual source/job/PR state, briefly state what succeeded, what remains uncertain, an approximate percentage complete where useful, and the next bounded action. Stop at existing operator approval gates; this rule never authorizes reviewer-bot requests, Ready transitions, merges, issue closure, or unsafe operational actions.
+* Keep durable, source-grounded checkpoints: issue/PR/branch/head SHA, completed changes, validation and review evidence, blockers, and next step in the governed `ircore` work-item readback or GitHub issue/PR when `ircore` is unavailable. A turnover document may supplement that record, but a fresh session must be able to resume from GitHub and persistent receipts without one.
+* If a tool fails, hangs, or gives an ambiguous result, first inspect live state before retrying; prevent duplicated writes, reviews, or charges. Preserve the separate 15-minute long-run checkpoint rule.
+* Small execution batches do **not** require fragmented PRs or weak validation. Combine related changes into a coherent, validated commit/PR when practical, and keep all existing governance, security, and operator-approval controls.
+
+
+## Draft-first code review and validation sequence (operator directive 2026-11-06)
+
+Draft is the implementation, adversarial-review, independent-review, and fix phase. Run inexpensive Draft fail-fast and scoped local tests first. Complete Prog/Adva (or an explicitly applicable runtime adapter) and operator-triggered/approved independent code reviews **while the PR is still Draft**. Prefer the operator's manually triggered Copilot review/fix loop. Never automatically request Copilot, paid internal review, or external agents; the existing per-request approvals and operator opt-outs remain binding.
+
+For each actionable finding, fix it on the Draft branch, rerun the cheapest relevant tests, resolve review threads, update the PR description to match the actual changed-file scope, and record the reviewed head SHA. Re-review substantive fixes or changed scope as warranted by the applicable review gate; every separate reviewer request requires its own approval. Before leaving Draft, verify current-head fast checks, review/finding disposition (or an explicit approved exception), accurate PR scope, no unresolved actionable threads, and **separate operator approval** to mark Ready.
+
+**Ready is the higher-cost validation phase.** Trigger required full PR/Windows, CodeQL/GHAS, security, and other checks against the exact Ready head. Do not reflexively request another code review merely because Ready checks finish when the reviewed head and scope have not changed. A new substantive code change, security finding, or failed validation can require another Draft review/fix loop and renewed exact-head qualification; obtain approval before changing a governed PR back to Draft. Merge and issue closure remain separately operator-approved. Never weaken required checks, fail-closed behavior, or reviewer approvals to reduce cost.
+
+**Known cost boundary:** the feature-branch push workflow still runs while a PR is Draft and can consume Windows CI resources. This process change does not claim complete Draft-cost savings. Any trigger or branch-protection change requires separate explicit workflow approval and authoritative required-check verification. Canonical lifecycle detail: `docs/validation/pr_validation_lifecycle.md`; review-request approvals: `.github/agent-governance/review_request_operator_approval.md`.
+
+
+## DCOIR architecture maintenance standard
+
+For DCOIR architecture/refactor work, especially issue #550 / PR #553 and follow-on maintenance, use a responsibility-first professional-maintainer standard rather than a history-preservation standard.
+
+* Refactor by stable responsibility, not by historical `v##` file boundary. A one-for-one rename or move of a numbered patch into a friendly filename is not sufficient architecture work.
+* Each active behavior should have one obvious canonical function/file owner, or a small explicit composition whose imports, ordering, and dependencies are readable without reconstructing patch chronology.
+* Consolidate duplicate/superseded functions into the canonical owner. Remove unnecessary runtime overrides, forwarding wrappers, stored-original callables, aliases, and historical shims after behavior/parity evidence proves they are no longer required.
+* Split and merge modules according to cohesive responsibility. Do not preserve awkward boundaries merely because earlier patches introduced them separately.
+* Keep version identifiers in production only when they represent a genuine external, schema, protocol, or persisted-data compatibility contract. Source-code history belongs in Git.
+* Stable tests should assert behavior, canonical ownership, explicit composition, and invariants. Do not keep or add tests whose only purpose is to force obsolete patch registration/order to remain in production.
+* Credit a consolidation slice only when it produces measurable structural improvement, such as fewer override chains, duplicate/superseded callable installations, stored-original shims, numbered final owners, or historical source paths, while preserving required behavior.
+* Apply the maintainer test: a professional engineer unfamiliar with the issue history should be able to locate the authoritative implementation, understand the active path, and make a future fix without walking backward through `_v##` files or PR chronology. If not, the responsibility is not fully consolidated.
+
+The detailed DCOIR-specific architecture contract is in `.github/dcoir_review/ARCHITECTURE.md`; live issue #550 and PR #553 carry the same operator acceptance standard for the active migration.
+
 ## Canonical connector targets
 
 * Default GitHub `repository_full_name`: `malwaredevil/dcoir-collector`
@@ -25,6 +67,7 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 * Default Supabase `project_id`: `kdhkhyksdzjbajavsoxa`
 * Default Supabase schema: `ircore`
 * Active continuity file: `/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md`
+* Canonical shared test-artifact registry: `project_sources/validation/fixtures/index.json` (manual and automated sanitized fixtures shared across Gemini, OpenAI, and other governed validation targets)
 
 Do not drift to another repo, Supabase project, schema, or memory surface unless the operator explicitly changes the target.
 
@@ -150,7 +193,7 @@ If these repo-scoped skills are missing, unavailable, or not discovered in the a
 The operator approved the following durable exceptions on 2026-07-12 for Codex Desktop, Codex CLI, and Codex IDE sessions that have a local repository checkout and authenticated local Git/GitHub tooling. These exceptions apply only to Codex operating through that local lane. They do not apply to ChatGPT WebUI, connector-only ChatGPT sessions, Replit Agent, Gemini, or any other IDE, LLM, or agent runtime.
 
 * Codex may use local file edits, local validation, `git`, `gh`, and available authenticated tooling instead of the ChatGPT WebUI GitHub connector or ChatGPT staging workflows.
-* Codex does not need to create or invoke named `Prog`, `Adva`, or `Codi` review personas or subagents. Codex remains responsible for implementing carefully, reviewing its own diff, and running validation proportionate to risk.
+* Codex does not need to create or invoke named `Prog` or `Adva` review personas or subagents. Codex remains responsible for implementing carefully, reviewing its own diff, and running validation proportionate to risk.
 * Codex does not need to post `/dcoir-review`, `/or-review`, or `/openrouter-review` or an equivalent slash-command review as a prerequisite for its own completion, readiness recommendation, or PR work.
 * Codex must not draft or post an external comment that invokes the literal `@codex` handle merely to ask Codex to review or act on work Codex is already performing.
 * These exceptions remove redundant self-invocation and WebUI connector ceremony only. They do not waive branch protection, explicit workflow-mutation approval, required tests, GitHub Actions readback, review-thread disposition, source/readback evidence, secrets handling, operator approval to merge or move a governed draft PR to ready, or other safety boundaries that materially protect the repository.
@@ -165,6 +208,35 @@ ChatGPT staging workflows such as `chatgpt-exec`, `chatgpt-stage-out`, `chatgpt-
 The ChatGPT webUI agent core-instruction reference snapshot lives at `.github/agent-governance/chatgpt_agent_core_reference.md`. Treat it as a parity and audit reference, not as an automatically current authority surface and not as a registry. If the webUI Core Agent Instructions change, update that reference through an approved repo lane, read it back, and state any remaining webUI reload/restart gap before claiming parity.
 
 Do not claim the ChatGPT webUI agent can automatically update this repository on session boot. If webUI instruction parity matters, require explicit current-core readback from the operator or live configured surface, then update/read back the repo reference and any related Supabase `ircore` records.
+
+## Claude Code local-session adapter
+
+The operator approved the following durable exceptions on 2026-09-28 for Claude Code sessions (CLI, desktop app Code tab, and IDE extensions) that have a local repository checkout and authenticated local Git/GitHub tooling. These exceptions apply only to Claude Code operating through that local lane. They do not apply to Codex, ChatGPT WebUI, connector-only sessions, Replit Agent, Gemini, or any other IDE, LLM, or agent runtime.
+
+Instruction loading:
+
+* The repository-root `CLAUDE.md` only imports this file (`@AGENTS.md`). Keep Claude Code-specific repository guidance in this section, not in `CLAUDE.md`, so this file stays the single authority surface.
+* Personal, uncommitted Claude Code preferences belong in `CLAUDE.local.md`, `.claude/settings.local.json`, or user-level settings. They are ignored by Git and must not contradict this file.
+* Claude Code auto memory is supplemental continuity only, under the same posture as the memory folder. It must not become a competing policy, routing, or registry surface.
+
+Same exceptions as the Codex local-session operator adapter:
+
+* Claude Code may use local file edits, local validation, `git`, `gh`, and available authenticated tooling instead of the ChatGPT WebUI GitHub connector or ChatGPT staging workflows.
+* Claude Code does not need to create or invoke named `Prog` or `Adva` review personas or subagents. Claude Code remains responsible for implementing carefully, reviewing its own diff, and running validation proportionate to risk. It may use its own review subagents or review skills when an independent pass is warranted.
+* Claude Code does not need to post `/dcoir-review`, `/or-review`, or `/openrouter-review` or an equivalent slash-command review as a prerequisite for its own completion, readiness recommendation, or PR work.
+* Claude Code does not need an external `@codex` review as a prerequisite for its own completion, readiness recommendation, or PR work. Any comment that invokes the literal `@codex` handle still requires the exact proposed text and explicit current-session operator approval.
+* These exceptions remove redundant self-invocation and WebUI connector ceremony only. They do not waive branch protection, explicit workflow-mutation approval, required tests, GitHub Actions readback, review-thread disposition, source/readback evidence, secrets handling, label rules, operator approval to merge or move a governed draft PR to ready, or other safety boundaries that materially protect the repository.
+* If Claude Code identifies another step that appears specific to ChatGPT WebUI or redundant in the local Claude Code lane, it should explain the step and its tradeoff and obtain operator approval before treating it as a durable exception.
+
+Claude Code-specific mechanics:
+
+* Claude Code does not discover skills under `.agents/skills`. When the `ircore` helper skills are relevant, read their `SKILL.md` files directly or follow the Supabase startup-pack and validation/readback rules in this file. Do not copy them into `.claude/skills` unless the operator approves a governed change.
+* On a local host without a `/workspace` tree, call the canonical Supabase functions directly with the canonical project ID and schema through the available Supabase connector. Do not create a `/workspace` tree on the host merely to satisfy the pointer-file shapes, and do not treat the missing pointer files as a startup blocker in that case.
+* Desktop app worktrees live under `.claude/worktrees/` and are local, ignored scratch checkouts. Never commit them or treat their state as GitHub source truth.
+* On a Windows host, local `powershell.exe` (confirm `$PSVersionTable.PSVersion` is 5.1) may provide early Windows PowerShell 5.1 evidence. The `windows-powershell-51.yml` workflow remains the evidence of record for governed readiness claims.
+* The desktop app may bind a PR and report its CI and review activity. Treat those notices as signals and read back live GitHub state before claiming check results or thread disposition.
+
+The general review-gate language elsewhere in this file remains authoritative for other runtimes. When reporting Claude Code-local work, state that the Claude Code local-session adapter applied instead of reporting the skipped WebUI-only gates as evidence gaps.
 
 ## Replit Agent adapter
 
@@ -199,9 +271,9 @@ and reads back the workflow run results through the GitHub API.
 
 For internal review passes, Replit Agent performs `Prog` and `Adva` passes
 internally and invokes its `code_review` subagent when an independent
-adversarial review is warranted. The Codi and OpenRouter internal review
-gates before external `@codex` review apply on PRs unless the operator
-explicitly waives them for the current task. If `/dcoir-review`, `/or-review`,
+adversarial review is warranted. The OpenRouter internal review gate before
+external `@codex` review applies on PRs unless the operator explicitly
+waives it for the current task. If `/dcoir-review`, `/or-review`,
 or `/openrouter-review` is the next applicable gate, Replit Agent must still
 draft the exact proposed command, show it to the operator, and receive
 explicit current-session approval before posting it; each rerun requires fresh
@@ -279,7 +351,7 @@ For operator-approved Codex Cloud fix requests, provide exact scope, files, orde
 
 ## Review conversation resolution
 
-Use this canonical rule whenever actionable external Codex, Codi, Adva, or Prog PR review conversations are addressed or reasonably dismissed.
+Use this canonical rule whenever actionable external Codex, Adva, or Prog PR review conversations are addressed or reasonably dismissed.
 
 Before claiming a review finding or conversation is addressed or reasonably dismissed:
 
@@ -330,22 +402,22 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 * Treat `Prog` and `Adva` as expert professionals in Python, PowerShell, JSON, YAML, GitHub Actions, software engineering, shell quoting, GitHub Actions expression surfaces, defense in depth, end-to-end code review, workflow runners, Gemini Enterprise and agent design, prompt engineering, cybersecurity, digital forensics, incident response, SOC operations, network forensics, Elastic SIEM, Elastic Defend response actions, and OSQuery writing.
 * When parallel workers are available, use them deliberately with clear ownership. When parallel workers are not available, still perform and label the Prog implementation/fix pass and Adva adversarial review pass internally.
 * If Prog or Adva is waived, unavailable, or not applicable, state why and preserve the evidence gap when governed readiness or completion depends on it.
-* Use Codi as an internal `@codex`-style hostile reviewer before requesting operator approval to post the external `@codex` PR request for PR-related code, workflow, or governed-source changes, unless the operator explicitly waives Codi for the current task.
-* Use Adva as an adversarial impact reviewer for PR-related code, workflow, and governed-source changes. Adva must look for downstream effects, indirect impacts, validation gaps, cross-surface conflicts, and risks outside the immediate changed files when relevant.
-* Require Codi to review with a hostile, adversarial, strict, and exhaustive posture. Codi must nitpick when the finding creates correctness, security, reliability, maintainability, validation, workflow, governance, or downstream-impact risk.
-* When Codi or Adva needs GitHub, Supabase, Gmail, internet, workflow, artifact, repo-file, PR, issue, branch, or other connector-backed evidence, retrieve it and provide it to the reviewer without filtering relevant evidence.
-* Fix valid Codi and Adva findings and repeat the review loop until both approve, the operator explicitly waives the remaining gate for the current task, or a future durable instruction change removes or changes the requirement.
-* Require Codi review comments related to code review in PRs or issues to have a raw comment body whose first non-blank line starts with `CODI FINDS`, then follow the closest practical `@codex` review/finding format used in this repository.
-* Treat Codi and Adva approval as internal review evidence only. It does not replace Prog, GitHub Actions, Supabase work-item receipts, live GitHub readback, operator approval, or the external `@codex` review response.
-* After Prog/Adva and Codi are clear for a governed PR, the OpenRouter internal review gate (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review gate before drafting or posting any external `@codex` PR review request when the OpenRouter workflow/script are available on the default branch or an explicitly approved equivalent live-test lane and local validation has passed. Before posting the command, draft the exact proposed internal review request, show it to the operator, and receive explicit current-session approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, do not treat branch-only workflow existence as enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. After an approved invocation, capture the command comment id, eyes reaction lifecycle, workflow/run readback, progress/status comment, served model/model stack, context mode, PR review id/output, reviewed head SHA, and inline findings. Treat every internal review finding as a gate item for production/external-review readiness: fix it with Prog/Adva/Codi discipline and do not request external `@codex` review while any latest-run finding remains. If a rerun is needed after any update or commit, stop before posting it, draft the exact rerun command, show it to the operator, and receive fresh explicit current-session approval. Repeat this approval-and-readback cycle until the latest operator-approved run reports no findings.
+* Use Adva as the single internal hostile/adversarial reviewer for non-trivial PR-related code, workflow, and governed-source changes. Adva must look for downstream effects, indirect impacts, validation gaps, cross-surface conflicts, and risks outside the immediate changed files when relevant.
+* Adva must actively generate novel hostile variants instead of merely replaying supplied examples. Include boundary-value and malformed-input mutation, repair-mechanism attacks, cross-file/caller contract checks, opposite-polarity/safe controls, and semantic or grammatical siblings when those dimensions fit the change.
+* When Adva needs GitHub, Supabase, Gmail, internet, workflow, artifact, repo-file, PR, issue, branch, or other connector-backed evidence, retrieve it and provide it to the review pass without filtering relevant evidence.
+* Fix valid Adva findings and repeat the adversarial review loop until Adva approves, the operator explicitly waives the remaining gate for the current task, or the pass is not applicable with a stated reason.
+* Treat Adva approval as internal review evidence only. It does not replace Prog, GitHub Actions, Supabase work-item receipts, live GitHub readback, operator approval, or genuinely independent review evidence when that separate gate applies.
+* After Prog/Adva are clear for a governed PR, the OpenRouter internal review gate (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review gate before drafting or posting any external `@codex` PR review request when the OpenRouter workflow/script are available on the default branch or an explicitly approved equivalent live-test lane and local validation has passed. Before posting the command, draft the exact proposed internal review request, show it to the operator, and receive explicit current-session approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, do not treat branch-only workflow existence as enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. After an approved invocation, capture the command comment id, eyes reaction lifecycle, workflow/run readback, progress/status comment, served model/model stack, context mode, PR review id/output, reviewed head SHA, and inline findings. Treat every internal review finding as a gate item for production/external-review readiness: fix it with Prog/Adva discipline and do not request external `@codex` review while any latest-run finding remains. If a rerun is needed after any update or commit, stop before posting it, draft the exact rerun command, show it to the operator, and receive fresh explicit current-session approval. Repeat this approval-and-readback cycle until the latest operator-approved run reports no findings.
 * When a governed workflow liveness check uses Gmail, use the human-facing search label `label:GitHub`; connector metadata and returned message labels may show the same mailbox label as `Label_125`. Treat Gmail as an early signal only, and use request-scoped heartbeat files, workflow reports, status summaries, and artifacts as execution evidence.
 * Every repeated `@codex` review request in the same PR thread must use varied wording instead of reusing one exact sentence, regardless of whether the PR is still draft or ready to move from draft to ready.
-* Before moving a governed draft PR to ready, complete Prog/Adva and Codi internal review gates unless explicitly waived for the task. When an internal review command (`/dcoir-review`, `/or-review`, or `/openrouter-review`) applies, treat it as a gate that requires exact current-session operator approval before every invocation and every rerun; do not post it automatically. Only after the latest operator-approved internal review run is clean may the agent draft the exact top-level PR comment that explicitly invokes `@codex` for a P0/P1-focused external review, show it to the operator, receive approval in the current session, post only after approval, read the formal `@codex` response live, and disposition valid findings.
-* Apply the canonical review conversation resolution rule whenever actionable external Codex, Codi, Adva, or Prog review conversations are addressed or reasonably dismissed.
+* Before moving a governed draft PR to ready, complete Prog/Adva internal review discipline unless explicitly waived for the task. When an internal review command (`/dcoir-review`, `/or-review`, or `/openrouter-review`) applies, treat it as a gate that requires exact current-session operator approval before every invocation and every rerun; do not post it automatically. Only after the latest operator-approved internal review run is clean may the agent draft the exact top-level PR comment that explicitly invokes `@codex` for a P0/P1-focused external review, show it to the operator, receive approval in the current session, post only after approval, read the formal `@codex` response live, and disposition valid findings.
+* Apply the canonical review conversation resolution rule whenever actionable external Codex, Adva, or Prog review conversations are addressed or reasonably dismissed.
 * If the operator approves an external Codex fix/action request, include exact scope, files, ordered instructions, validation expectations, and the expected native publish behavior. Do not embed a requirement to recreate or use retired Codex Cloud push helpers.
 
 ## Validation and readback
 
+* For governed GitHub PR post-publication readback, use `.github/dcoir_review/scripts/read-pr-validation-state.py` or an equivalent connector readback that covers the same surfaces. Do **not** infer PR validation from Actions workflow runs alone. At minimum read the exact PR head and mergeability, the complete commit `check-runs` collection, Actions workflow runs/jobs, legacy commit statuses, unresolved review threads, and failed-check annotations when available. Treat a separate GitHub Advanced Security result check such as `CodeQL` as an independent gate: successful CodeQL analysis jobs do not clear the PR when the GHAS result check reports new alerts. Also read required platform-specific evidence such as exact-head Windows PowerShell 5.1 when the changed scope requires it.
+* Report skipped or unavailable checks explicitly instead of silently converting them to pass. Any failed, cancelled, timed-out, action-required, stale, startup-failure, pending, or unresolved required validation remains a readiness gap until dispositioned.
 * When editing code or workflows, run the closest available validation and report any gaps.
 * When editing documentation, scan for stale path references and mismatched authority claims before finishing.
 * For Codex Cloud PR change tasks, report task-side commit/diff state separately from GitHub-published state. Claim branch write-back only after the task result is published and the live GitHub PR head, resulting commit, and changed source are read back.
@@ -354,7 +426,7 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 * Read back active continuity after continuity updates.
 * For ircore skill updates, validate that the skill mirrors current Core Agent Instructions, repository `AGENTS.md`, and Supabase `ircore` records. If skill text disagrees with those surfaces, treat the skill as drifted and update the skill; do not update core, `AGENTS.md`, or Supabase merely to match stale skill wording.
 * When a claim depends on code, workflow, governed-source text, skill package, Supabase guidance, PR readiness, or issue closeability, include Prog/Adva status in the evidence summary. A readiness or closeability claim is incomplete when Prog/Adva discipline applies but the implementation/fix pass, adversarial review pass, or reason for skipping either pass has not been stated.
-* Treat broken path references, stale startup guidance, workflow assumptions about removed files, stale-lane drift, answer-first verification gaps, incomplete manual-action guidance, contradictory bootstrap-path guidance, skipped Prog/Adva gates, skipped Codi gates, skipped GitHub work-item receipts, unapproved DCOIR Review requests, unapproved GitHub Copilot review requests, and skipped Codex push-result reporting as real operator-governance defects.
+* Treat broken path references, stale startup guidance, workflow assumptions about removed files, stale-lane drift, answer-first verification gaps, incomplete manual-action guidance, contradictory bootstrap-path guidance, skipped Prog/Adva gates, skipped GitHub work-item receipts, unapproved DCOIR Review requests, unapproved GitHub Copilot review requests, and skipped Codex push-result reporting as real operator-governance defects.
 * Do not claim complete, verified, ready, closeable, or successful without authority readback evidence. If evidence is partial, say what was checked, what was not checked, and the exact remaining gap.
 
 ## Required final report format for Codex Cloud PR change tasks

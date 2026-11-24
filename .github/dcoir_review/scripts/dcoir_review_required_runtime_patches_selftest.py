@@ -109,4 +109,22 @@ assert "redacted" not in normalized["body"].lower()
 assert "syntax error" not in normalized["body"].lower()
 assert "py_compile" in normalized["validation"]
 
+mixed_language_diff = """diff --git a/project_sources/collector/tools/fixture_probe.py b/project_sources/collector/tools/fixture_probe.py
+new file mode 100644
+--- /dev/null
++++ b/project_sources/collector/tools/fixture_probe.py
+@@ -0,0 +1 @@
++result = {"text": "Invoke-Expression $scriptText"}
+diff --git a/project_sources/collector/tools/live_probe.ps1 b/project_sources/collector/tools/live_probe.ps1
+new file mode 100644
+--- /dev/null
++++ b/project_sources/collector/tools/live_probe.ps1
+@@ -0,0 +1 @@
++Invoke-Expression $scriptText
+"""
+mixed_language_sentinels = pareto.detect_risk_sentinels(mixed_language_diff, 1)
+assert len(mixed_language_sentinels) == 1
+assert mixed_language_sentinels[0].path.endswith("live_probe.ps1")
+assert mixed_language_sentinels[0].label == "PowerShell Invoke-Expression"
+
 print("required DCOIR Review runtime patch selftest passed")

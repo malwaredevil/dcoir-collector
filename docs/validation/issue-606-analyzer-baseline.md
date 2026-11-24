@@ -1,0 +1,30 @@
+# Issue #606: PowerShell analyzer baseline disposition
+
+First authoritative Windows evidence: [Main Push Validation run 38041902823](https://github.com/malwaredevil/dcoir-collector/actions/runs/38041902823), PR #617 at `b78ec2aca8e66525609aa42a76099acf26b5888c`. PSScriptAnalyzer 1.25.0 analyzed all 133 inventoried targets and reported 668 findings: 489 Warning, 143 Information, **36 ParseError**, and zero Error. The older collector-only scanner had 217 findings across 45 files; every historical finding was retained (legacy zero positions normalized to null for comparison).
+
+Exactly **232 pre-existing Warning occurrences** under the six governed policy rules were fingerprint-baselined, not removed from the analyzer report: `PSAvoidUsingWriteHost` 170, `PSUseDeclaredVarsMoreThanAssignments` 29, `PSUseShouldProcessForStateChangingFunctions` 33. The remaining three credential/evaluation policy rules had zero observed occurrences. All 232 source paths already existed on main before this PR and their content was unchanged except five `Write-Host` messages in the policy gate, whose unchanged lines and moved positions were accounted for in the first-run evidence. Each suppression has its own exact path, rule, fingerprint, and documented reason. New occurrences, changed files, changed messages, stale baseline entries, or Errors fail closed.
+
+This baseline is **not proof that old warnings are safe**. The 33 `ShouldProcess` findings describe an operator-confirmation gap and deserve a separate targeted contract review before modifying those functions. The 29 unused-assignment findings need focused source review, and the host-output findings need output-contract-preserving modernization. None are resolved merely by baselining. No wildcard suppression is present. Each JSON part is under 15 KB and independently SHA-256 pinned by the small baseline manifest. Digests are computed from newline-normalized content (LF or CRLF) so Windows Git checkout cannot invalidate an unchanged reviewed baseline; content tampering still invalidates its hash. Manifest or shard drift invalidates the analyzer evidence.
+
+The 36 `ParseError` findings appeared exclusively in independently split harness source parts, which are not standalone parse units. They remain visible in reports and are *not* suppressed. The separate assembled harness and Windows PowerShell 5.1 checks provide syntactic evidence. An unrecognized severity or parser error outside precisely classified harness fragments fails closed; the central static gate validates counts and source categories.
+
+Scope is backward compatibility for existing approved behavior, **not blanket removal of the documented Warning gate**. Correctly scoped new violations must fail the new CI gate. Check exact-head GitHub Windows artifacts after this baseline is published; this first-run evidence is not final validation of the future commit.
+
+## GHAS autofix resumption and follow-up validation
+
+The October 10 GHAS autofixes on PR #617 remove two unused import aliases and require an explicit boolean `suppressed_by_baseline` flag in the static gate. Because the gate script changed, five previously reviewed `Write-Host` findings moved to lines 136, 137, 138, 140, and 145. Their exact source statements and analyzer messages were compared with the original Windows finding evidence before their five fingerprints and the two affected baseline shard hashes were updated. The other 227 baseline exceptions remain unchanged. The changed source inventory and dependent review-assist report were regenerated.
+
+[Main Push Validation run 38042897292](https://github.com/malwaredevil/dcoir-collector/actions/runs/38042897292) failed on Windows at the baseline shard hash check because checkout line endings changed raw file hashes; this was not a clean policy-gate run. The analyzer now uses the same newline-stable file hash helper already used for governed inventory source SHA checks. Separate positive CRLF and negative changed-content regression controls preserve fail-closed integrity. Two indirect-import regressions caused by the GHAS cleanup were repaired by switching dependent files to import their functionality from the canonical modules. The full collector Python regression suite and exact-head Windows validation remain authoritative for completion.
+
+## PSScriptAnalyzer intermittent engine exception
+
+Main Push Validation run `38048689136`, first attempt on commit `81c80502`, scanned seven targets before the PSScriptAnalyzer 1.25.0 engine threw `Object reference not set to an instance of an object` against `Dcoir.Actions.psm1`. No incomplete scan was accepted; the 126 unmatched baseline entries reflect this stopped run rather than unreviewed new suppressions. An upstream PSScriptAnalyzer issue documents intermittent crashes of this kind caused by concurrent rule evaluation (https://github.com/PowerShell/PSScriptAnalyzer/issues/1867). The wrapper may retry **only** this exact internal error in a fresh process, up to three total attempts. Other crashes, invalid output, missing tools, or exhausted retries remain blocking; every scan must still return a complete valid per-target report. Positive recovery and exhausted/unrelated failure tests provide evidence.
+
+## Native Warning-gate fixture evidence
+
+The analyzer action runs an isolated negative/positive fixture pair through the
+production Python analyzer with the live PowerShell policy and no baseline.
+The existing `bad/invoke_expression.ps1` must raise an unsuppressed Warning from
+`PSAvoidUsingInvokeExpression` that would fail the severity gate. The safe
+`Write-Output` control must pass. This verifies the documented matrix claim
+without creating a competing report producer or changing the source inventory.

@@ -22,7 +22,7 @@ jobs:
   dependency_review:
     if: ${{ vars.ENABLE_DEPENDENCY_REVIEW == 'true' }}
     name: Dependency Review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -39,7 +39,7 @@ jobs:
   dependency_review_not_enabled:
     if: ${{ vars.ENABLE_DEPENDENCY_REVIEW != 'true' }}
     name: Dependency Review Not Enabled
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Explain why dependency review is skipped
         run: |

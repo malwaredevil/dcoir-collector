@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "125a0afaf998ffa46738f1bd809c99fa1a34d782650a4f150839ea1f4a9c70fb",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 101. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "58c9fd0935f8cf8bb3f80bfa5e2068210840141bef8b35e93fe2fe8625d8ae02",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 100. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "79511192e812a2e8c92408cde163bea645b81ad5f6a3bd014b93b313330652a0",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 28. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "b83f9d59609342de8cec22eb36ef251050392006c37bd21372f4a1ec0b0e85d3",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 102. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "2e6ee4db4c39502308e96e58fbc29204b68e64ed18d35f816df41a51533fb818",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 56. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "7c36db6a9187c8a71be207e15b7429707ab57f3169cc5c2a18ae71162e8f5f16",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 57. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "0d5306b869784ead9b3f467d9a1bae4049153f69abf0b7445fb4920991f384c5",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 37. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "73ec7884b172375e10afbaf43ef6c0bd17b61c6473d85dee7e1acbc73536409d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 128. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "34c8bd9e6d4a7f341269598d083a2a55787ffd27f75af5f966fd44809fd766fe",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 94. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "57fa8b2bed8c9d2c8c1a08fd6ea9a96595cd5a5667a9d8f014f908e78f69cea0",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 96. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "5e66cab88856801959b550e6e2bb47a9d55496b1d5f82d3ea8fbddba5f957071",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 92. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "6788e56668c78a376e968f15ca52507ff096d72eb72fea9bda41d2344c142174",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 95. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "8846ff69dc9cf0955ec35af7141d4b7f0c5d1fe7ff030c2cc339a3f9122d23ad",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 93. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ac3b75b08611a106b439bf157e17e7c5c4e114ab4d95961d4037b87555dd9c0a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 39. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "b26d51edb223289e8967e7baf64e13223c19f55a5f9bf6e275b859a69d0d6719",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 97. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "338922325ec03f28950cf64aef725d5911c51aeded6756932a815a5a9508d882",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 54. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "5407ed0960e18585a7a903ef219c3045f8e2fcc14c6f5b714b69669c9584eea9",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 271. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "8b595f76f157a70b5b8aa49ef46d03399295bc77d281b148e67f1969368fe054",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 272. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

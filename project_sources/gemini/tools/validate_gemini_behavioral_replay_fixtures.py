@@ -6,11 +6,11 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from lib.gemini_behavioral_replay_schema import validate_fixture_shape
-
-
-def load_json(path: Path) -> Dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+from lib.gemini_behavioral_replay_runner import (
+    load_fixture_entry,
+    load_fixture_index,
+    repo_root_from_script,
+)
 
 
 def main() -> int:
@@ -22,21 +22,19 @@ def main() -> int:
     fixtures_root = Path(args.fixtures_root).resolve()
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = repo_root_from_script(Path(__file__))
 
-    index_path = fixtures_root / "index.json"
-    index_payload = load_json(index_path)
+    index_payload = load_fixture_index(fixtures_root)
     fixture_entries = index_payload.get("fixtures", [])
 
     report_rows: List[Dict[str, Any]] = []
     errors: List[str] = []
 
     for entry in fixture_entries:
-        fixture_path = Path(entry["path"])
-        if not fixture_path.is_absolute():
-            fixture_path = (repo_root / fixture_path).resolve()
-        fixture_payload = load_json(fixture_path)
-        messages = validate_fixture_shape(fixture_payload)
+        loaded = load_fixture_entry(repo_root, entry)
+        fixture_path = loaded["fixture_path"]
+        fixture_payload = loaded["fixture"]
+        messages = loaded["validation_messages"]
         report_rows.append(
             {
                 "fixture_id": fixture_payload.get("fixture_id", entry.get("fixture_id")),

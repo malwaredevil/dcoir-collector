@@ -140,7 +140,7 @@ jobs:
       - gemini_bundle_validation
       - gemini_behavioral_replay_validation
       - gemini_production_like_harness_validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read

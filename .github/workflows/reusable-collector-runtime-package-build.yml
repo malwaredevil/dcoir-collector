@@ -30,11 +30,7 @@ jobs:
       - name: Set up workflow runtime
         uses: ./.github/actions/setup-workflow-runtime
         with:
-          setup-python: 'false'
-
-      - name: Set up Python runtime
-        uses: ./.github/actions/setup-python-runtime
-        with:
+          setup-python: 'true'
           python-version: "3.11"
 
       - name: Validate Python syntax
@@ -63,6 +59,9 @@ jobs:
         uses: ./.github/actions/run-collector-runtime-package-validation
         with:
           output-dir: project_sources/validation/out
+
+      - name: Assemble generated collector harness
+        uses: ./.github/actions/assemble-collector-harness
 
       - name: Run collector documentation quality gate
         uses: ./.github/actions/run-collector-documentation-quality

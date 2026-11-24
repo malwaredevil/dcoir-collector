@@ -152,17 +152,19 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    env:
+      # Prevent CPython from writing __pycache__/.pyc into the working tree.
+      # The "Check for packaging residue" step below fails the job when it
+      # finds such residue, and earlier Python steps (e.g. required-surface
+      # checks) would otherwise generate it before the check runs.
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Set up workflow runtime
         uses: ./.github/actions/setup-workflow-runtime
         with:
-          setup-python: 'false'
-
-      - name: Set up Python runtime
-        uses: ./.github/actions/setup-python-runtime
-        with:
+          setup-python: 'true'
           python-version: "3.11"
 
       - name: Check required governed surfaces
@@ -209,7 +211,7 @@ jobs:
           use-windows-powershell: "true"
 
       - name: Assemble generated collector harness
-        if: ${{ inputs.run_harness_assembly_parity || inputs.run_harness_suite }}
+        if: ${{ inputs.run_harness_assembly_parity || inputs.run_harness_suite || inputs.run_documentation_quality }}
         uses: ./.github/actions/assemble-collector-harness
 
       - name: Validate generated harness Windows PowerShell 5.1 syntax

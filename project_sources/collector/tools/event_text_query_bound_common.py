@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List
 
+from powershell_lexical_mask import mask_powershell_non_code
+
 EVENT_TEXT_REVIEW_REL = 'project_sources/collector/source/parts/DCOIR_Collector.03B_Enrich_Actions_Review.ps1'
 RETRIEVAL_ACTIONS_REL = 'project_sources/collector/source/parts/DCOIR_Collector.03C_Enrich_Actions_Retrieval.ps1'
 EVENT_WINDOW_OVERRIDES_REL = 'project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1'
@@ -90,81 +92,8 @@ def extract_quoted_switch_case_bodies(text: str, case_name: str) -> List[str]:
     return bodies
 
 
-def mask_powershell_strings_and_comments(text: str, mask_backtick_escapes: bool = False) -> str:
-    chars: List[str] = []
-    index = 0
-    quote = ''
-    while index < len(text):
-        char = text[index]
-        if quote:
-            if char == '`':
-                chars.append(' ')
-                if index + 1 < len(text):
-                    chars.append(text[index + 1] if text[index + 1] in '\r\n' else ' ')
-                    index += 2
-                else:
-                    index += 1
-                continue
-            if char == quote:
-                if index + 1 < len(text) and text[index + 1] == quote:
-                    chars.extend('  ')
-                    index += 2
-                    continue
-                quote = ''
-            chars.append(char if char in '\r\n' else ' ')
-            index += 1
-            continue
-        if text.startswith('<#', index):
-            chars.extend('  ')
-            index += 2
-            while index < len(text):
-                if text.startswith('#>', index):
-                    chars.extend('  ')
-                    index += 2
-                    break
-                chars.append(text[index] if text[index] in '\r\n' else ' ')
-                index += 1
-            continue
-        if text.startswith('@"', index) or text.startswith("@'", index):
-            closer = '"@' if text[index + 1] == '"' else "'@"
-            chars.extend('  ')
-            index += 2
-            while index < len(text):
-                line_start = index == 0 or text[index - 1] in '\r\n'
-                if line_start:
-                    close_match = re.match(r'[ \t]*' + re.escape(closer), text[index:])
-                    if close_match:
-                        chars.extend(' ' * close_match.end())
-                        index += close_match.end()
-                        break
-                chars.append(text[index] if text[index] in '\r\n' else ' ')
-                index += 1
-            continue
-        if char in ("'", '"'):
-            quote = char
-            chars.append(' ')
-            index += 1
-            continue
-        if char == '#':
-            while index < len(text) and text[index] not in '\r\n':
-                chars.append(' ')
-                index += 1
-            continue
-        if mask_backtick_escapes and char == '`':
-            chars.append(' ')
-            if index + 1 < len(text):
-                chars.append(text[index + 1] if text[index + 1] in '\r\n' else ' ')
-                index += 2
-            else:
-                index += 1
-            continue
-        chars.append(char)
-        index += 1
-    return ''.join(chars)
-
-
 def extract_powershell_command_spans(text: str, command_name: str) -> List[str]:
-    masked = mask_powershell_strings_and_comments(text)
+    masked = mask_powershell_non_code(text)
     pattern = re.compile(r'\b' + re.escape(command_name) + r'\b', re.IGNORECASE)
     closing_for_open = {'(': ')', '[': ']', '{': '}'}
     spans: List[str] = []
@@ -202,7 +131,7 @@ def normalize_powershell_command_span(command_span: str) -> str:
 
 
 def powershell_command_scan_text(command_span: str) -> str:
-    return mask_powershell_strings_and_comments(
+    return mask_powershell_non_code(
         normalize_powershell_command_span(command_span),
         mask_backtick_escapes=True,
     )

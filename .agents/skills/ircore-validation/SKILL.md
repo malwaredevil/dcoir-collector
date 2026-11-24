@@ -16,7 +16,6 @@ Its job is to:
 - distinguish checked facts from unchecked assumptions
 - enforce GitHub work-item receipt discipline for governed issue/PR work
 - enforce Prog/Adva internal review evidence for non-trivial governed work before readiness, closeability, completion, or external-review claims
-- enforce Codi review evidence before external `@codex` requests when PR-related code review is in scope
 - enforce operator approval of the exact proposed external `@codex` PR comment text before any such comment is posted or confirmed
 - enforce operator approval of the exact proposed `/dcoir-review`, `/or-review`, or `/openrouter-review` command before every invocation or rerun
 - keep completion language bounded to the evidence actually available
@@ -36,7 +35,7 @@ Use this skill when the task involves:
 - direct agent-instruction updates
 - governed GitHub issue or PR evidence recording
 - Prog/Adva internal review claims, waivers, or evidence gaps
-- PR review-gate claims involving Prog, Adva, Codi, `/dcoir-review`, external `@codex`, GitHub Copilot, GitHub Actions, or Supabase receipts
+- PR review-gate claims involving Prog, Adva, `/dcoir-review`, external `@codex`, GitHub Copilot, GitHub Actions, or Supabase receipts
 - report-back language such as verified, complete, ready, fixed, successful, or installed
 
 Do not invoke this skill for casual discussion or early brainstorming with no evidence claim attached.
@@ -84,7 +83,6 @@ Examples:
 - install claim -> confirm the installed artifact is actually present and recognized
 - direct agent-instruction update claim -> read back the changed instruction file from GitHub or configured instruction surface and state whether a session restart or reload is still required
 - Prog/Adva gate claim -> summarize the implementation/fix scope, adversarial review result, valid findings disposition, and any waiver or unavailable-worker gap
-- Codi gate claim -> summarize Codi's latest review result and keep it separate from external `@codex` evidence
 - DCOIR Review gate claim -> summarize the exact `/dcoir-review` request text, current-session operator approval for that exact invocation, posted command comment id, reviewed head/run evidence, findings, and any later rerun approval/readback separately
 - External `@codex` gate claim -> summarize the exact-text operator approval status, posted comment id if approved and posted, formal response readback, valid finding disposition, and any remaining approval or readback gap
 - GitHub Copilot review gate claim -> summarize whether the operator explicitly approved the request or manually triggered it, plus the reviewed head and finding disposition
@@ -105,15 +103,14 @@ Do not manually insert, update, or delete rows in `ircore.github_work_items` or 
 
 ## PR Review Gate Validation
 
-Resolve the active runtime adapter in `AGENTS.md` before applying PR review gates. When the Codex local-session operator adapter applies, named Prog/Adva/Codi passes, `/dcoir-review`, and external self-invocation are not required. Validate Codex self-review, relevant tests, GitHub/source readback, review-thread disposition, and the retained operator/safety approvals instead. Do not extend this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
+Resolve the active runtime adapter in `AGENTS.md` before applying PR review gates. When the Codex local-session operator adapter applies, named Prog/Adva passes, `/dcoir-review`, and external self-invocation are not required. Validate Codex self-review, relevant tests, GitHub/source readback, review-thread disposition, and the retained operator/safety approvals instead. Do not extend this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
 
 For governed PR readiness:
-- Prog and Adva are internal professional review passes.
-- Codi must review PR-related code changes before the external `@codex` comment is posted unless the operator explicitly waives Codi for the current task.
-- Valid Codi findings must be fixed and re-reviewed until Codi approves, the operator explicitly waives Codi for the current task, or a future durable instruction change removes or changes the Codi requirement.
-- Codi review comments related to code review in PRs or issues must have a raw comment body whose first non-blank line starts with `CODI FINDS`, then follow the closest practical `@codex` review/finding format used in this repository.
-- Codi approval is internal evidence only and does not replace external `@codex`.
-- After Prog/Adva and Codi are clear for a governed PR, the OpenRouter internal review command (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review gate when the gate applies and the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane. This sequencing does not authorize the command. Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current/future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation; every rerun or later internal review request requires fresh explicit approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, branch-only existence is not enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. Required readback includes the operator approval evidence, command comment id, eyes reaction lifecycle, workflow/run state, progress/status comment, PR review output, and valid finding disposition.
+- Prog is the implementation/fix pass and Adva is the single internal hostile/adversarial review pass.
+- Adva must generate novel hostile variants and inspect boundary values, malformed inputs, repair mechanisms, cross-file/caller contracts, and opposite-polarity/safe controls when relevant.
+- Valid Adva findings must be fixed and re-reviewed until Adva approves, the operator explicitly waives Adva for the current task, or the pass is not applicable with a stated reason.
+- Adva approval is internal evidence only and does not replace genuinely independent review.
+- After Prog/Adva are clear for a governed PR, the OpenRouter internal review command (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review gate when the gate applies and the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane. This sequencing does not authorize the command. Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current/future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation; every rerun or later internal review request requires fresh explicit approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, branch-only existence is not enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. Required readback includes the operator approval evidence, command comment id, eyes reaction lifecycle, workflow/run state, progress/status comment, PR review output, and valid finding disposition.
 - If a DCOIR Review finding requires a later rerun, stop after the fix and obtain fresh current-session approval for the exact rerun command before posting it.
 - Before posting or confirming any PR comment that invokes the literal `@codex` handle and asks Codex to review, act, fix, patch, implement, update, or otherwise perform PR-related work, draft the exact comment text, show it to the operator, and receive explicit operator approval in the current session. No approval means no post.
 - External `@codex` requires a literal `@codex` top-level PR comment, comment-id capture, reaction polling, formal response readback, and finding disposition.
@@ -145,11 +142,10 @@ Check these first:
 5. mutation reported complete even though only draft content exists
 6. GitHub work-item gateway functions skipped for governed issue/PR work
 7. Prog/Adva skipped when applicable without waiver, unavailable-worker explanation, or not-applicable reason
-8. Codi skipped before external `@codex` for PR-related code review when not explicitly waived
-9. `/dcoir-review` posted, confirmed, or rerun without operator approval of that exact proposed command in the current session
-10. external `@codex` PR comment posted or confirmed without operator approval of the exact proposed comment text in the current session
-11. GitHub Copilot review requested without explicit operator approval when the operator did not manually trigger it
-12. direct agent-instruction update performed without exact operator approval and post-update GitHub readback
+8. `/dcoir-review` posted, confirmed, or rerun without operator approval of that exact proposed command in the current session
+9. external `@codex` PR comment posted or confirmed without operator approval of the exact proposed comment text in the current session
+10. GitHub Copilot review requested without explicit operator approval when the operator did not manually trigger it
+11. direct agent-instruction update performed without exact operator approval and post-update GitHub readback
 
 ## Output Contract
 
@@ -162,7 +158,7 @@ When used, return:
 5. what was not checked
 6. GitHub work-item receipt status, if applicable
 7. Prog/Adva applicability and evidence, or reason not applicable
-8. Codi/internal review status, DCOIR Review exact-request approval/readback status, GitHub Copilot approval/manual-trigger status, and external `@codex` exact-text approval status, if applicable
+8. internal Adva review status, DCOIR Review exact-request approval/readback status, GitHub Copilot approval/manual-trigger status, and external `@codex` exact-text approval status, if applicable
 9. pass, partial, gap, failed, stale, or not verified as supported by the governing surface
 10. one best next move
 
@@ -172,7 +168,6 @@ When used, return:
 - do not skip readback after mutation
 - do not skip GitHub work-item receipt gateways for governed issue/PR work
 - do not claim Prog/Adva discipline is complete unless the implementation/fix scope, adversarial review result, and valid finding disposition are stated, or the pass is explicitly waived, unavailable, or not applicable
-- do not claim the Codi gate is clear unless Codi was actually asked and approved, the operator explicitly waived Codi for the task, or the Codex local-session operator adapter makes the gate not applicable
 - do not post or confirm any `/dcoir-review`, `/or-review`, or `/openrouter-review` command unless the operator approved the exact proposed command in the current session; this applies to every variant and every rerun independently
 - do not claim the OpenRouter internal review gate is clear unless the applicable exact-request operator approval, command comment, eyes lifecycle, workflow/run state, PR review output, and finding disposition were read back, or the gate was explicitly waived/not applicable through the active runtime adapter; for OpenRouter `issue_comment` workflow/script changes, default-branch or equivalent live-test availability is required before live slash evidence can clear the gate
 - do not request GitHub Copilot review unless the operator explicitly approves or manually triggers it

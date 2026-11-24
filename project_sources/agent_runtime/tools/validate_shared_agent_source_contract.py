@@ -8,6 +8,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+from openai_webui_contract import CAPABILITY_KEYS
 
 
 EXPECTED_TARGET_IDS = {
@@ -16,18 +17,7 @@ EXPECTED_TARGET_IDS = {
     'openai_usb_reporting',
 }
 OPENAI_TARGET_IDS = {'openai_dcoir_analyst', 'openai_usb_reporting'}
-UNAVAILABLE_OPENAI_CAPABILITIES = {
-    'web_search',
-    'code_interpreter_data_analysis',
-    'canvas',
-    'image_generation',
-    'apps',
-    'actions',
-    'live_elastic_access',
-    'live_collector_execution',
-    'github_supabase_connectors',
-    'persistent_cross_conversation_memory',
-}
+UNAVAILABLE_OPENAI_CAPABILITIES = frozenset(CAPABILITY_KEYS)
 BEHAVIOR_REQUIRED_FIELDS = {
     'id',
     'source_path',

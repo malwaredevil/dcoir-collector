@@ -86,7 +86,7 @@ Stage 8 adds three family-specific validation rules:
 
 1. `agent_runtime_write_requires_exact_head_validation`
    - requires the exact reviewed head;
-   - requires the applicable ten-command agent-runtime contract and generated drift checks;
+   - requires the applicable thirteen-command agent-runtime contract and generated drift checks;
    - requires unified release/parity readback;
    - requires GitHub and Supabase work-item receipts before readiness claims.
 2. `agent_runtime_static_live_evidence_boundary`

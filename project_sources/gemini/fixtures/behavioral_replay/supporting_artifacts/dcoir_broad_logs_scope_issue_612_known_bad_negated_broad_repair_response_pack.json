@@ -1,0 +1,44 @@
+{
+  "schema_version": "gemini_behavioral_replay_response_pack_v1",
+  "fixture_id": "dcoir_broad_logs_scope_issue_612",
+  "mode": "deterministic",
+  "model_name": "governed-adversarial-control",
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "assistant_response": "Use FROM \"logs-*\" for initial triage with a bounded time range and evidence-backed WHERE predicates. A familiar integration does not justify narrow source coverage."
+    },
+    {
+      "turn_id": "turn-002",
+      "assistant_response": "Returned evidence establishes the source location. A source-specific objective permits justified narrowing to FROM \"logs-endpoint.events.process-*\" while preserving the event and bounded time."
+    },
+    {
+      "turn_id": "turn-003",
+      "assistant_response": "The label is not proof of source coverage. Retain FROM \"logs-*\" and apply reliable WHERE predicates before narrowing."
+    },
+    {
+      "turn_id": "turn-004",
+      "assistant_response": "The zero rows are bounded to the searched lane. Do not restore FROM \"logs-*\". Still preserve investigative predicates and the case time range before a conclusion."
+    },
+    {
+      "turn_id": "turn-005",
+      "assistant_response": "KQL has no FROM clause. Select a broad logs-oriented Kibana data view, use field-agnostic artifact discovery and avoid speculative data_stream.dataset filters. If the interface cannot change the view, state that limitation."
+    },
+    {
+      "turn_id": "turn-006",
+      "assistant_response": "Broaden the selected Kibana data view to logs-*, remove the unsupported data_stream.dataset filter, retain the IOC and time window, then assess the next returned result."
+    },
+    {
+      "turn_id": "turn-007",
+      "assistant_response": "A source-specific host-health objective justifies metrics-* for supporting host-state context. Do not substitute metrics-* for logs-* behavior evidence."
+    },
+    {
+      "turn_id": "turn-008",
+      "assistant_response": "Gemini and OpenAI use the same broad-first scope rule: FROM \"logs-*\" for uncertain investigative ES|QL and broad KQL data views. This is a proposed query, not an executed search."
+    }
+  ],
+  "metadata": {
+    "source": "governed_known_good_example",
+    "purpose": "Issue 612 eight-turn broad-first source controls"
+  }
+}

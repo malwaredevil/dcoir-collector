@@ -15,8 +15,5 @@ Invoke-FunctionReachabilityReviewAssistGate `
   -GeneratedMarkdown $paths.FunctionGeneratedMarkdown
 
 Invoke-PowerShellReviewAssistReportGate `
-  -GeneratedJson $paths.GeneratedJson `
-  -GeneratedMarkdown $paths.GeneratedMarkdown `
   -ReviewAssistJson $paths.ReviewAssistJson `
-  -ReviewAssistMarkdown $paths.ReviewAssistMarkdown `
-  -MetadataWrapperScript (Join-Path -Path $actionRoot -ChildPath 'wrap_review_assist_workflow_report.py')
+  -ReviewAssistMarkdown $paths.ReviewAssistMarkdown

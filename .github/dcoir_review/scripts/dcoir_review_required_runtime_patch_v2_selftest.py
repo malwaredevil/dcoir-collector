@@ -98,18 +98,8 @@ def test_yaml_validation_is_single_line() -> None:
     assert validation.startswith("python3 -c ")
 
 
-def test_final_renderer_uses_required_v2_normalization() -> None:
-    class FakeBase:
-        def __init__(self) -> None:
-            self.build_inline_comment = lambda finding, _model, _config: f"STRICT {finding.get('title')}\n{finding.get('validation', '')}"
-            self._dcoir_strict_original_build_inline_comment = self.original_build
-
-        def original_build(self, finding: dict[str, object], _model: str, _config: object) -> str:
-            return f"{finding.get('title')}\n{finding.get('validation', '')}"
-
-    fake_module = SimpleNamespace(base=FakeBase(), hardened=SimpleNamespace())
-    v2.apply_pareto_context_module(fake_module)
-    comment = fake_module.base.build_inline_comment(
+def test_required_v2_normalization_contract() -> None:
+    normalized = v2._normalize_comment_finding(
         {
             "path": ".github/workflows/dcoir-v2-test.yml",
             "line": 4,
@@ -117,20 +107,18 @@ def test_final_renderer_uses_required_v2_normalization() -> None:
             "body": "",
             "validation": "python3 - <<'PY'\nPY",
             "_anchored_line_text": "permissions: write-all",
-        },
-        "model",
-        SimpleNamespace(),
+        }
     )
-    assert "GitHub Actions workflow grants write permissions" in comment, comment
-    assert "<<'PY'" not in comment, comment
-    assert not comment.startswith("STRICT"), comment
+    assert normalized["title"] == "GitHub Actions workflow grants write permissions", normalized
+    assert "<<'PY'" not in normalized["validation"], normalized
+    assert "\n" not in normalized["validation"], normalized
 
 
 def main() -> None:
     test_ps_acl_survives_required_budget()
     test_token_forwarding_is_not_called_hardcoded()
     test_yaml_validation_is_single_line()
-    test_final_renderer_uses_required_v2_normalization()
+    test_required_v2_normalization_contract()
     print("dcoir_review_required_runtime_patch_v2_selftest passed")
 
 

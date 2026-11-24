@@ -22,6 +22,16 @@ under one request directory. The entry workflow has two paths:
   usable push event for the writer; or
 - a manual `workflow_dispatch` with `request_path` set to the request JSON.
 
+Root-level non-request files directly under `.github/ops/requests/apply_patch/`
+(such as this README or a scaffold file) are trigger-safe metadata. If a push
+containing only those files reaches the workflow, the resolver records a clean
+no-op and exits successfully. Inside a `<request_id>/` directory, added or
+modified paths remain strict: only `request.json` and a `.patch` or `.diff`
+input are recognized, and any other path fails closed. Cleanup-only deletions
+remain a successful no-op. A push whose change discovery produces no paths also
+fails closed; the resolver only takes the metadata no-op path when it actually
+observed a root-level non-request change.
+
 There is no automatic scheduled scanner. If a connector-created commit does not
 produce a visible `64 Ops - Apply Patch Request` run, an `ops-apply-patch-*`
 artifact, or a target-branch commit within the normal Actions startup window,
@@ -144,9 +154,15 @@ blank context lines.
 Default-branch writes are blocked unless the request sets `allow_default_branch: true`
 and includes a non-empty `default_branch_reason`.
 
-Workflow-file targets are blocked unless the request sets
-`allow_workflow_changes: true` and includes a non-empty
-`workflow_change_reason`.
+Workflow-governed targets are always blocked in this automated lane. They are
+`.github/workflows/`, `.github/actions/` (composite actions run with the
+permissions of every workflow that calls them), and `.github/ops/tools/` (the
+tools that run this lane). Request-controlled fields such as
+`allow_workflow_changes` or `workflow_change_reason` do not unlock these
+surfaces. Make an approved governed-surface change through a normal branch/PR or
+other independently operator-authorized lane instead. The prefix list lives in
+`WORKFLOW_GOVERNED_PREFIXES` in
+`.github/ops/tools/lib/apply_patch_request_contract.py`.
 
 Creates, deletes, renames, copies, and mode changes should be added later only
 behind explicit per-operation approval flags and focused tests.

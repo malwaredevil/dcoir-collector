@@ -32,33 +32,33 @@ These items are not treated as proven by the current #187/#186 FullRegression su
 
 ## Historical Deep-Gate Deficiency Backlog
 
-Codi and Adva deep review on PR head `69874498e760a1f884a4ee3477a7600ffd94beca` did not clear the deep PR/subordinate-issue gate. These rows are historical backlog evidence carried forward into the current head; they are not a current-head Codi/Adva approval or rejection by themselves.
+Codi and Adva deep review on PR head `69874498e760a1f884a4ee3477a7600ffd94beca` did not clear the deep PR/subordinate-issue gate. These rows preserve the findings and required actions **as they existed during PR #186**. They are historical evidence only; they do not define current review gates, current blockers, or current required actions.
 
-| Reviewer | Finding | Current disposition | Required action |
+| Reviewer | Historical finding | Historical disposition at the time | Historical required action at the time |
 | --- | --- | --- | --- |
-| Codi | P1: manual validation evidence is missing for the current head. | Still open for the active PR head. Current automatic checks do not replace current-head manual FullRegression, collector runtime package build, Gemini bundle build, or post-draft `validate-on-pr`. | Run/read back the manual workflows on the PR branch and record run IDs, head SHA, job/step outcomes, and artifacts before closeability/readiness claims. |
-| Codi | P2: #192 and #193 are not satisfied child requirements. | Still open as an explicit follow-on-scope disposition. | Keep #192/#193 out of completed-scope claims unless the operator explicitly accepts them as follow-on work with rationale, or implement and validate them. |
-| Adva | P1: current-head source readback was not mapped to subordinate issue requirements. | Addressed by the source-readback map below, subject to current-head review and external review readback. | Keep the source-readback map tied to the active PR head and rerun review gates after material source or matrix changes. |
-| Adva | P1: current-head FullRegression evidence is missing. | Still open for the active PR head. | Run/read back `manual-full-validation` with `suite=FullRegression` on the PR branch. |
-| Adva | P1: current-head collector runtime package build evidence is missing. | Still open for the active PR head. | Run/read back `manual-collector-runtime-package-build` on the PR branch. |
-| Adva | P1: current-head Gemini bundle build evidence is missing. | Still open for the active PR head. | Run/read back `manual-gemini-bundle-build` on the PR branch with validation enabled. |
-| Adva | P2: `validate-on-pr` remains skipped while the PR is draft. | Future gate. | Keep the PR draft until earlier gates pass; after draft lift, read back `validate-on-pr` for the lifted head. |
+| Codi | P1: manual validation evidence was missing for the then-current head. | The PR #186 snapshot recorded the manual validation gap as still open at that time. | At the time, run/read back the manual workflows on the PR branch and record run IDs, head SHA, job/step outcomes, and artifacts before closeability/readiness claims. |
+| Codi | P2: #192 and #193 were not satisfied child requirements. | The PR #186 snapshot recorded them as explicit follow-on scope. | At the time, keep #192/#193 out of completed-scope claims unless accepted as follow-on work with rationale, or implement and validate them. Their current status is governed by the live issues. |
+| Adva | P1: current-head source readback was not mapped to subordinate issue requirements. | The historical source-readback map below addressed that PR-era finding, subject to the review state that existed then. | At the time, keep the source-readback map tied to the active PR head and rerun the then-applicable review gates after material source or matrix changes. |
+| Adva | P1: current-head FullRegression evidence was missing. | The PR #186 snapshot recorded this as open at that time. | At the time, run/read back `manual-full-validation` with `suite=FullRegression` on the PR branch. |
+| Adva | P1: current-head collector runtime package build evidence was missing. | The PR #186 snapshot recorded this as open at that time. | At the time, run/read back `manual-collector-runtime-package-build` on the PR branch. |
+| Adva | P1: current-head Gemini bundle build evidence was missing. | The PR #186 snapshot recorded this as open at that time. | At the time, run/read back `manual-gemini-bundle-build` on the PR branch with validation enabled. |
+| Adva | P2: `validate-on-pr` was skipped while the PR was draft. | The PR #186 snapshot treated this as a later gate. | At the time, keep the PR draft until earlier gates passed; after draft lift, read back `validate-on-pr` for the lifted head. |
 
-## Active Review Status
+## Historical Review Status Snapshot (PR #186)
 
-This section tracks review status for the active PR branch without hardcoding a live head SHA into the source file. The exact active head must be read back from GitHub PR metadata and, when recorded, the Supabase work-item receipt ledger.
+This section preserves review-status evidence captured during PR #186. It is **not** a current review checklist and must not be used to resurrect retired review gates. Codi references here describe what happened on that historical PR. Current governed internal review policy is Prog implementation/fix work plus the strengthened Adva hostile/adversarial pass, followed by separately operator-controlled independent review gates when they apply.
 
-| Review surface | Status | Remaining gap |
+| Review surface | Historical status | Current interpretation |
 | --- | --- | --- |
-| Focused 04G source-mode wrapper follow-up | Focused Prog/Adva/Codi passed; external `@codex` follow-up reported no major issues for the prior P2 on the then-current head. | This clears only the focused wrapper follow-up, not the final full PR gate or manual workflow gates. |
-| Final end-to-end Codi split review | In progress after matrix stale-head wording fix. | Rerun Codi on the updated matrix and then complete external full PR review before manual workflow gates. |
-| Manual workflow evidence | Not yet run/read back for the active PR head. | FullRegression, collector runtime package build, Gemini bundle build, and post-draft `validate-on-pr` remain required later gates. |
+| Focused 04G source-mode wrapper follow-up | Focused Prog/Adva/Codi passed; external `@codex` follow-up reported no major issues for the prior P2 on the then-current head. | Historical evidence only. It does not create a current Codi requirement. |
+| Final end-to-end Codi split review | The historical snapshot recorded this as in progress after a matrix stale-head wording fix. | Superseded as an active instruction by #593 / PR #595. Any future review uses the current Prog + strengthened Adva policy and the current operator-controlled independent-review gates. |
+| Manual workflow evidence | The historical snapshot recorded these manual workflow readbacks as pending for the then-current PR head. | Future work must read live GitHub/workflow state; this historical row is not a current blocker by itself. |
 
-## Current-Head Source-Readback Map
+## Historical Source-Readback Map (PR #186)
 
-This map records the governed source surfaces checked while working the Adva source-readback finding. It is anchored to the active PR branch, with the exact active head supplied by GitHub/Supabase readback instead of by this static file, and it does not replace workflow run evidence.
+This map preserves the governed source surfaces checked while working the historical Adva source-readback finding on PR #186. It is not anchored to a current PR head and does not replace current live GitHub, workflow, or Supabase readback when any future work touches these surfaces.
 
-| Requirement area | Source surfaces read back | Evidence observed | Remaining gap |
+| Requirement area | Source surfaces read back | Evidence observed | Historical remaining gap at the time |
 | --- | --- | --- | --- |
 | #70 exact event-window metadata and fallback | `project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1`; `project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1`; `project_sources/collector/harness/run_DCOIR_Tests.ps1` | Effective event-window parsing, `Get-WinEvent` filter construction, `WINDOW_START`, `WINDOW_END`, `MAX_EVENTS` metadata, invalid/inverted fallback, rejected-bound clearing, and targeted validation steps are present. | Current-head FullRegression must pass the mapped targeted/failure-gate rows. Raw EVTX exact include/exclude proof remains #193 unless implemented here. |
 | #125 package diagnostics and no-state cleanup | `project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1`; `project_sources/collector/harness/run_DCOIR_Tests.ps1`; `.github/workflows/manual-collector-runtime-package-build.yml` | Exact custom `RunId` lookup is preserved; blank/latest cleanup stays timestamp-bounded; no-state cleanup requires collector-created child structure; package workflow validates/builds/uploads collector runtime artifacts. | Current-head manual collector runtime package build and FullRegression cleanup/failure-gate rows must be read back. |
@@ -69,8 +69,8 @@ This map records the governed source surfaces checked while working the Adva sou
 | #190 Gemini alignment | Gemini `Sub_Agent_06_DCOIR_Collector_Execution_and_Bundle_Workflow_Orchestrator.md.txt`; Gemini `Sub_Agent_07_DCOIR_Collector_Artifact_Interpreter_and_Report_Extractor.md.txt`; `.github/workflows/manual-gemini-bundle-build.yml` | Sub-Agent 06 anchors collector syntax to governed source, preserves command-lane boundaries, targeted window limitations, `MaxEvents`, upload-safe chunk availability, and custom `RunId` cleanup. Sub-Agent 07 distinguishes manifests from evidence carriers and handles upload-safe chunk review order. | Current-head Gemini bundle build/readback remains required before #190 closeability/readiness claims. |
 | #192/#193 follow-on targets | `docs/validation/dcoir_collector_capability_coverage_matrix.md`; issues #192/#193 | The matrix keeps TargetProfile/quick-alias validation and raw EVTX exact include/exclude proof as explicit follow-on targets. | Operator disposition or separate implementation/validation is required before claiming those requirements satisfied. |
 
-## Closeability Boundary
+## Historical Closeability Boundary for #187
 
-#187 should close only after current-head manual FullRegression evidence is read back for the current PR scope and the remaining follow-on validation targets are either completed, accepted as separately tracked follow-on work, or otherwise dispositioned by the operator with explicit rationale.
+This was the closeability boundary used for #187 and its associated PR-era validation work. #187 is historical/closed; this section remains only to explain what evidence the matrix was designed to require at that time.
 
-Manual FullRegression can prove the current PR harness rows, progress artifacts, production chunking rows, Tier 2 bounded collect rows, cleanup rows, and capability coverage artifacts. It does not by itself prove the follow-on #192/#193 validation targets or operator knowledge-page completeness.
+Manual FullRegression could prove the PR-era harness rows, progress artifacts, production chunking rows, Tier 2 bounded collect rows, cleanup rows, and capability coverage artifacts. It did not by itself prove the separately tracked #192/#193 validation targets or operator knowledge-page completeness. Current work on #192 or #193 must use their live issue state and current validation policy rather than treating this historical boundary as an active gate.

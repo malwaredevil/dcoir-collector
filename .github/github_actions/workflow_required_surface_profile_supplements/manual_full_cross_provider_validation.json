@@ -5,8 +5,11 @@
     ".github/workflows/reusable-validate-gemini-behavioral-replay.yml",
     ".github/workflows/reusable-validate-gemini-production-like-harness.yml",
     "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
-    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py",
-    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py",
     "project_sources/gemini/tools/run_gemini_behavioral_replay_validation_suite.py",
     "project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py",
     "project_sources/gemini/tools/validate_gemini_production_like_harness.py",
@@ -14,7 +17,18 @@
     ".github/github_actions/workflow_required_surface_profile_supplements/manual_full_cross_provider_validation.json"
   ],
   "manual_openai_gpt_deployment_package_build": [
-    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py",
+    "project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_behavior_snapshot_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_instruction_contract_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_source_contract_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_package_assembly_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_knowledge_projection_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_validation_kernel_selftest.py",
+    "project_sources/agent_runtime/tests/openai_builder_manifest_validation_selftest.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
     ".github/github_actions/workflow_required_surface_profile_supplements/manual_full_cross_provider_validation.json"
   ]

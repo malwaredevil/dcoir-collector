@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "5a24bf4721efc5a3b16097c7700f24a83614f1a52c95d71e500942cf8e48ea0a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 238. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "57852e70fc0e70d9fd737a50faf486f3bccc0bacb12e4b9e0894606d7dc73683",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 138. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "1cd1b5203f5adbfc648a608c5a31d7db29aeecb39021cbca745273c6120da0d0",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 21. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "4a5b82ff4facd23afa611d6005723e3e1b6d0631c54e789af807c3418ca81360",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 328. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "5fa0e39d6c69d76901688c0c627e1f3816a3019e434d4ea41161f1a2e32ac705",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 329. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "7aeb6ace152c8e2208012a9f4b5fac131d7578b44b7d451b5a61ac8898730bd8",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 217. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "176399391a997996d8e7e01c0e3b0f621e55092e9c7f9b361458345bfa44b648",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 139. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "265c978a7da832d3625c3b63767c80c08e8798c6940441501ef236335cb105d3",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 137. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "495ad6ccde9ee44b6db636326768571ca751ff46eef566cabbab111fb38eb9ad",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 136. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "515bc5330e40d9d6ede9729e4c52160effd5ba82267ccda7b81988e276084b6c",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 138. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "187c4362a86a5f8786d533c52efe1fc1373eb2f0c0ca31cadf644fc7014d6c1f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 331. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "9338532f0273eae0dd7ed998a1badb53856a28d51c9239733c5bd98e79abd902",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 271. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "a6a89e69f69b48d0a22f22ce8087ca89c52800afaa37eee2858f47d00a607542",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 332. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "f2fb6f74dbc0bc52137fcb78a47ff0071a20ba74385687715069306ae9eeb8f5",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 334. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "24e5d2a2a4a34dbc242bbd529121d5134ddedd3730f1f0400db3b3c081f2415e",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 220. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "2fd9327c65ca1af31dcfa2807b31f79c6030967130310a41d388fd79dbd75abf",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 217. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "5409ac8a46f63ca2bb867e46d1db15680a8e6369f7d47a8a216e66d1e1226a78",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 218. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "b416507847d98f2cabeee903c3d7ab53f10f4e15f9a0ed1ac865f4f0ada81bfa",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 219. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

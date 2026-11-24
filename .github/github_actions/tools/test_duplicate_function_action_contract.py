@@ -169,6 +169,25 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.script_text)
 
+    def test_duplicate_function_discovery_is_shared_with_syntax(self) -> None:
+        # Both shipped consumers must use the AST-backed scan set, not independent globs.
+        helper = REPO_ROOT / ".github/scripts/Get-CollectorSourcePartFiles.ps1"
+        self.assertTrue(helper.is_file(), "Shared helper is missing")
+        self.assertIn("function Get-CollectorSourcePartFiles", helper.read_text(encoding="utf-8"))
+        self.assertIn(".github/scripts/Get-CollectorSourcePartFiles.ps1", self.script_text)
+        self.assertIn("-ForValidation", self.script_text)
+        self.assertNotIn("Get-ChildItem -LiteralPath $partsDir", self.script_text)
+
+    def test_syntax_discovery_uses_the_same_shared_scan_set(self) -> None:
+        syntax_text = (REPO_ROOT / ".github/actions/validate-powershell-syntax/action.yml").read_text(encoding="utf-8")
+        self.assertIn(".github/scripts/Get-CollectorSourcePartFiles.ps1", syntax_text)
+        self.assertIn("-ForValidation", syntax_text)
+        self.assertNotIn(
+            "$psFiles += Get-ChildItem -LiteralPath 'project_sources/collector/source/parts'",
+            syntax_text,
+        )
+        self.assertNotIn("INCLUDE_COLLECTOR_PARTS -eq 'true' -and (Test-Path", syntax_text)
+
     def test_validation_workflows_run_contract_test_before_action(self) -> None:
         for workflow in [VALIDATE_ON_PR, VALIDATE_ON_PUSH]:
             with self.subTest(workflow=workflow.name):

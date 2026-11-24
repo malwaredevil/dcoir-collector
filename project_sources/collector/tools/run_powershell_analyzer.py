@@ -19,6 +19,7 @@ if str(_TOOLS_DIR) not in sys.path:
 import powershell_analyzer_execution as _execution
 from powershell_analyzer_baseline import apply_baseline, baseline_metadata, load_baseline
 from powershell_analyzer_cli import build_report, main, parse_args
+from collector_tool_path_safety import repo_relative_input_path
 from powershell_analyzer_contract import (
     ANALYZABLE_SOURCE_TYPES,
     BASELINE_SCHEMA_VERSION,
@@ -39,7 +40,6 @@ from powershell_analyzer_contract import (
     read_json,
     read_text,
     relpath,
-    repo_relative_input_path,
     safe_relpath,
     scalar,
     severity_at_or_above,

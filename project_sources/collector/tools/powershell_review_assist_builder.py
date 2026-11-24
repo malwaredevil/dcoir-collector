@@ -33,6 +33,7 @@ from powershell_review_assist_findings import (
     validate_normalized_findings,
 )
 from powershell_review_assist_rendering import (
+    WORKFLOW_RETENTION_SCOPE,
     artifact_contract,
     render_markdown,
     validate_against_schema_contract,
@@ -63,12 +64,49 @@ def summarize(source_reports: list[dict[str, Any]], findings: list[dict[str, Any
         "validation_success": True,
     }
 
+
+def workflow_artifact_contract(args: argparse.Namespace, repo_root: Path) -> dict[str, Any]:
+    """Resolve final artifact metadata once, before Markdown and schema validation."""
+    contract = artifact_contract()
+    behavior = getattr(args, "artifact_behavior", "none")
+    retention = getattr(args, "retention_scope", None)
+    if behavior not in ("none", "caller_uploaded_artifact"):
+        raise ReviewAssistError(f"Unsupported review-assist artifact behavior: {behavior}")
+    if behavior == "none":
+        if retention is not None:
+            raise ReviewAssistError("Retention override requires workflow artifact behavior")
+        return contract
+    if retention is not None and (
+        not isinstance(retention, str)
+        or not retention.strip()
+        or any(ord(char) < 32 or 127 <= ord(char) < 160 for char in retention)
+    ):
+        raise ReviewAssistError("Invalid workflow artifact retention scope")
+    json_path, json_relative = resolve_report_output_path(
+        repo_root, Path(args.json_output), "PowerShell review-assist JSON report output", ".json"
+    )
+    markdown_path, markdown_relative = resolve_report_output_path(
+        repo_root, Path(args.markdown_output), "PowerShell review-assist Markdown report output", ".md"
+    )
+    if json_path.resolve() == markdown_path.resolve():
+        raise ReviewAssistError("PowerShell review-assist JSON and Markdown report output paths must be different")
+    contract["local_artifacts"]["json"] = json_relative
+    contract["local_artifacts"]["markdown"] = markdown_relative
+    contract["workflow_behavior"] = "caller_uploaded_artifact"
+    contract["retention_scope"] = retention if retention is not None else WORKFLOW_RETENTION_SCOPE
+    return contract
+
 def build_report(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], list[str]]:
     repo_root = Path(args.repo_root).resolve()
     errors: list[str] = []
     warnings: list[str] = []
     carried_forward_warnings: list[dict[str, Any]] = []
     missing_artifacts: list[dict[str, Any]] = []
+    try:
+        selected_artifact_contract = workflow_artifact_contract(args, repo_root)
+    except ReviewAssistError as exc:
+        errors.append(str(exc))
+        selected_artifact_contract = artifact_contract()
     source_paths = {
         "surface_inventory": Path(args.surface_inventory),
         "rule_risk_report": Path(args.rule_risk_report),
@@ -145,7 +183,7 @@ def build_report(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], l
         "missing_artifacts": missing_artifacts,
         "unclaimed_artifacts": unclaimed_artifacts,
         "non_claims": list(NON_CLAIMS),
-        "artifact_contract": artifact_contract(),
+        "artifact_contract": selected_artifact_contract,
         "validation": {
             "success": False,
             "errors": errors,

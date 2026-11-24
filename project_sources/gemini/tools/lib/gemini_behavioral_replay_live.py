@@ -8,27 +8,12 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List
 
+from lib.gemini_behavioral_replay_prompt import behavioral_replay_prompt
 from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION
+from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
 
 def live_prompt(fixture: Dict[str, Any], turn: Dict[str, Any]) -> str:
-    evidence = fixture.get("available_evidence_by_turn", {}).get(turn.get("turn_id"), [])
-    required = turn.get("required_markers", fixture.get("required_markers", []))
-    forbidden = turn.get("forbidden_markers", fixture.get("forbidden_markers", []))
-    return "\n\n".join([
-        "You are producing the next operator-facing answer for a governed DCOIR Gemini behavioral replay.",
-        "Return only the assistant answer text. Do not include JSON, scoring notes, hidden reasoning, or meta commentary.",
-        "Evidence discipline is mandatory: say what is checked, what is not checked, and avoid conclusions that are not supported by the listed evidence.",
-        "When a required phrase is true and natural, include it exactly so the replay can measure operator-facing behavior without weakening evidence boundaries.",
-        "Do not include any forbidden phrase unless you are clearly rejecting or negating that claim.",
-        f"Fixture: {fixture.get('fixture_id')}", f"Scenario: {fixture.get('title')}",
-        "Available evidence for this turn:\n" + ("\n".join(f"- {x}" for x in evidence) or "- No additional evidence is available."),
-        "Allowed assumptions:\n" + ("\n".join(f"- {x}" for x in turn.get("allowed_assumptions", [])) or "- None."),
-        "Disallowed assumptions:\n" + ("\n".join(f"- {x}" for x in turn.get("disallowed_assumptions", [])) or "- None."),
-        "Expected behavior tags: " + (", ".join(turn.get("expected_behavior_tags", [])) or "none"),
-        "Required behavior markers to satisfy when accurate: " + (", ".join(required) or "none"),
-        "Forbidden claims to avoid or explicitly reject: " + (", ".join(forbidden) or "none"),
-        "User turn:\n" + str(turn.get("content", "")).strip(),
-    ])
+    return behavioral_replay_prompt(fixture, turn, replay_label="DCOIR Gemini behavioral replay")
 
 def extract_text(payload: Dict[str, Any]) -> str:
     out: List[str] = []
@@ -38,9 +23,29 @@ def extract_text(payload: Dict[str, Any]) -> str:
                 out.append(str(part["text"]))
     return "\n".join(out).strip()
 
-def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str) -> Dict[str, Any]:
-    endpoint = f"{args.api_base}/models/{model}:generateContent"
-    body = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": args.temperature, "candidateCount": 1}}).encode()
+def call_gemini(
+    api_key: str, args: argparse.Namespace, model: str, prompt: str,
+    *, generation_config: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """Only generation POST owner for Gemini replay and model comparison.
+
+    Retry only explicit HTTP 429 responses; any ambiguous response, including
+    5xx and read/parse failures, can follow a billable generation.
+    """
+    model_id = str(model or "").strip()
+    if model_id.startswith("models/"):
+        model_id = model_id[len("models/"):]
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", model_id) or model_id.lower().endswith("-latest"):
+        return {"ok": False, "attempts": [], "error": "invalid_model_name"}
+    endpoint = f"{args.api_base.rstrip('/')}/models/{model_id}:generateContent"
+    config = (
+        {"temperature": args.temperature, "candidateCount": 1}
+        if generation_config is None else dict(generation_config)
+    )
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": config,
+    }).encode("utf-8")
     attempts = []
     for attempt in range(1, args.max_retries + 1):
         start = time.monotonic()
@@ -53,20 +58,61 @@ def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str)
             )
             with urllib.request.urlopen(req, timeout=120) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-                attempts.append({"attempt": attempt, "status_code": response.status, "latency_ms": round((time.monotonic() - start) * 1000, 2)})
-                return {"ok": True, "attempts": attempts, "payload": payload, "response_text": extract_text(payload)}
+                attempts.append({
+                    "attempt": attempt, "status_code": response.status,
+                    "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                })
+                return {
+                    "ok": True, "attempts": attempts, "payload": payload,
+                    "response_text": extract_text(payload),
+                    "usage_metadata": payload.get("usageMetadata", {}),
+                    "called_model": f"models/{model_id}",
+                }
         except urllib.error.HTTPError as exc:
-            body_text = exc.read().decode("utf-8", errors="ignore")
-            attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": round((time.monotonic() - start) * 1000, 2), "error_body_excerpt": body_text[:1000]})
+            try:
+                body_text = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                # An error response can arrive after a billable POST, yet
+                # reading its diagnostic body can still fail. Account for
+                # the known HTTP status without a speculative re-POST.
+                attempts.append({
+                    "attempt": attempt, "status_code": exc.code,
+                    "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                    "error_body_excerpt": "",
+                    "error_body_error": "error_body_unavailable",
+                })
+                if exc.code == 429 and attempt < args.max_retries:
+                    time.sleep(args.retry_base_seconds * attempt)
+                    continue
+                return {
+                    "ok": False, "attempts": attempts,
+                    "error": f"http_{exc.code}", "error_body": "",
+                    "error_body_error": "error_body_unavailable",
+                    "called_model": f"models/{model_id}",
+                }
+            attempts.append({
+                "attempt": attempt, "status_code": exc.code,
+                "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                "error_body_excerpt": body_text[:1000],
+            })
             if exc.code == 429 and attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt); continue
-            return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": body_text[:4000]}
+                time.sleep(args.retry_base_seconds * attempt)
+                continue
+            return {
+                "ok": False, "attempts": attempts,
+                "error": f"http_{exc.code}", "error_body": body_text[:4000],
+                "called_model": f"models/{model_id}",
+            }
         except Exception as exc:
-            attempts.append({"attempt": attempt, "latency_ms": round((time.monotonic() - start) * 1000, 2), "error": str(exc)})
-            if attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt); continue
-            return {"ok": False, "attempts": attempts, "error": str(exc)}
-    return {"ok": False, "attempts": attempts, "error": "unknown"}
+            attempts.append({
+                "attempt": attempt, "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                "error": str(exc),
+            })
+            return {
+                "ok": False, "attempts": attempts, "error": str(exc),
+                "called_model": f"models/{model_id}",
+            }
+    return {"ok": False, "attempts": attempts, "error": "unknown", "called_model": f"models/{model_id}"}
 
 def runtime_unavailable_reason(call: Dict[str, Any]) -> str:
     text_parts = [str(call.get("error", "")), str(call.get("error_body", ""))]
@@ -78,7 +124,7 @@ def runtime_unavailable_reason(call: Dict[str, Any]) -> str:
     if call.get("ok"):
         return ""
     if call.get("error") == "http_404" and any(marker in low for marker in markers):
-        return text.strip()[:500] or "model unavailable at runtime"
+        return "model unavailable at runtime"
     return ""
 
 def unavailable_matrix_row(pack: Dict[str, Any]) -> Dict[str, Any]:
@@ -103,10 +149,10 @@ def make_pack(fixture: Dict[str, Any], args: argparse.Namespace, model: str, mod
             elif unavailable_reason:
                 response = f"MODEL_UNAVAILABLE: {model} is unavailable for live replay. {unavailable_reason}"
             else:
-                response = f"LIVE_REPLAY_CALL_FAILED: {call.get('error', 'unknown')}"
+                response = f"LIVE_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
             calls.append({
                 "fixture_id": fixture.get("fixture_id"), "model_name": model, "turn_id": turn.get("turn_id"),
-                "ok": call.get("ok"), "attempts": call.get("attempts", []), "error": call.get("error"),
+                "ok": call.get("ok"), "attempts": safe_attempts(call.get("attempts", [])), "error": safe_error(call.get("error")),
                 "unavailable": bool(unavailable_reason), "unavailable_reason": unavailable_reason,
             })
         else:

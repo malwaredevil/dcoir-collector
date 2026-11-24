@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Stable contract checks for independent repair-critic routing."""
+
+from __future__ import annotations
+
+import copy
+from email.message import Message
+import importlib
+import io
+import json
+import urllib.error
+
+from dcoir_review import repair as repair_policy
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+
+def main() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    names = entrypoint.patch_module_names
+    assert "dcoir_review_required_runtime_patch_v29" not in names
+    assert "dcoir_review_required_runtime_patch_v28" not in names
+    assert "dcoir_review_required_runtime_patch_v30" not in names
+    assert "dcoir_review.risk_sentinel_detection" in names
+    assert names.index("dcoir_review.repair_pipeline") < names.index(
+        "dcoir_review.risk_sentinel_detection"
+    )
+
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    entrypoint.apply_runtime_patches(review)
+    repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
+
+    base_config = review.load_pareto_context_config(
+        ".github/dcoir_review/openrouter-pr-review-pareto.yml"
+    )
+    original_stack = list(base_config.model_stack)
+
+    repair_author = repair_policy.build_repair_author_config(base_config)
+    assert repair_author is not base_config
+    assert repair_author.model == repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL
+    assert repair_author.model_stack == [
+        repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL,
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL,
+    ]
+    assert repair_author.fallback_models == []
+    assert repair_author.openrouter_route == ""
+    assert repair_author.openrouter_service_tier == ""
+    assert repair_author.openrouter_session_id_prefix.endswith("-repair-author")
+    assert repair_author.dcoir_reasoning_effort_by_model == {
+        repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL: "xhigh",
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL: "high",
+    }
+    author_payload = review.hardened.build_openrouter_payload(
+        "repair author probe",
+        repair_pipeline.REPAIR_AUTHOR_SCHEMA,
+        repair_author,
+        [],
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL,
+    )
+    assert author_payload["model"] == "anthropic/claude-sonnet-5.5"
+    assert "temperature" not in author_payload
+    assert author_payload["reasoning"] == {
+        "enabled": True,
+        "effort": "high",
+        "exclude": True,
+    }
+
+    contaminated = copy.copy(base_config)
+    contaminated.fallback_models = ["legacy/fallback"]
+    contaminated.openrouter_route = "auto"
+    contaminated.openrouter_service_tier = "priority"
+    author_critic = repair_policy.build_repair_critic_config(
+        contaminated, "anthropic/claude-opus-5"
+    )
+    assert author_critic.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
+    assert author_critic.model_stack == [
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert author_critic.fallback_models == []
+    assert author_critic.openrouter_route == ""
+    assert author_critic.openrouter_service_tier == ""
+    assert contaminated.fallback_models == ["legacy/fallback"]
+    assert contaminated.openrouter_route == "auto"
+    assert contaminated.openrouter_service_tier == "priority"
+
+    # Issues #582/#586 regression: live review runs showed Opus 5 and then
+    # Sonnet 5 returning endpoint-routing 404s while Sol Pro succeeded in other
+    # stages. A Sol-authored repair must therefore retain independent-family
+    # fallbacks beyond Anthropic rather than turning those 404s into a terminal
+    # repair-critic failure.
+    sol_author_critic = repair_policy.build_repair_critic_config(
+        base_config, "openai/gpt-5.6-sol-pro"
+    )
+    assert sol_author_critic.model_stack == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5.5"
+    assert not repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL.startswith("~")
+    assert repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "google/gemini-3.1-pro-preview"
+    assert all(
+        not str(model).removeprefix("~").startswith("openai/")
+        for model in sol_author_critic.model_stack
+    )
+
+    attempted_models: list[str] = []
+    original_request_once = review.hardened.openrouter_request_once
+    empty_headers = Message()
+
+    def fake_repair_critic_request(_prompt, _schema, _config, _ignored, model):
+        attempted_models.append(model)
+        if model in {
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        }:
+            body = json.dumps(
+                {"error": {"message": "No endpoints found that can handle the requested parameters."}}
+            ).encode("utf-8")
+            raise urllib.error.HTTPError(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                code=404,
+                msg="No endpoints found",
+                hdrs=empty_headers,
+                fp=io.BytesIO(body),
+            )
+        return (
+            {"accepted": True, "confidence": 0.99, "reason": "fallback critic accepted"},
+            model,
+            "",
+        )
+
+    review.hardened.openrouter_request_once = fake_repair_critic_request
+    try:
+        regression_result, regression_model, _regression_tier = review.hardened.openrouter_review(
+            "critic probe",
+            repair_pipeline.REPAIR_CRITIC_SCHEMA,
+            sol_author_critic,
+            reporter=None,
+        )
+    finally:
+        review.hardened.openrouter_request_once = original_request_once
+
+    assert attempted_models == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert regression_model == repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL
+    assert regression_result["accepted"] is True
+
+    critic = repair_pipeline._independent_config(base_config)
+
+    assert base_config.model_stack == original_stack, (
+        "critic config mutated shared production config"
+    )
+    assert critic is not base_config
+    assert critic.model == repair_policy.PRIMARY_CRITIC_MODEL
+    assert critic.model_stack == [
+        repair_policy.PRIMARY_CRITIC_MODEL,
+        repair_policy.FALLBACK_CRITIC_MODEL,
+    ]
+    assert critic.fallback_models == []
+    assert critic.openrouter_route == ""
+    assert critic.openrouter_service_tier == ""
+    assert critic.openrouter_session_id_prefix.endswith("-repair-critic")
+
+    payload = review.hardened.build_openrouter_payload(
+        "critic probe",
+        repair_pipeline.REPAIR_CRITIC_SCHEMA,
+        critic,
+        [],
+        critic.model_stack[0],
+    )
+    assert payload["model"] == repair_policy.PRIMARY_CRITIC_MODEL
+    assert payload["response_format"]["type"] == "json_schema"
+    assert payload["response_format"]["json_schema"]["strict"] is True
+    assert payload["provider"]["require_parameters"] is True
+    assert "plugins" not in payload, (
+        "direct critic unexpectedly received Auto/Pareto router plugin"
+    )
+    assert "models" not in payload, (
+        "critic should use explicit sequential model_stack fallback"
+    )
+
+    print("dcoir_review_repair_routing_selftest passed")
+
+
+if __name__ == "__main__":
+    main()

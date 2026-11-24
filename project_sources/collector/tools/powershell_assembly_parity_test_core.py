@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity
+import powershell_assembly_parity_builders as _builders
+import powershell_assembly_parity_cli as _cli
+import powershell_assembly_parity_common as _common
+import powershell_assembly_parity_parsing as _parsing
+from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity, write
 
 
 class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
@@ -20,6 +25,62 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
         self.assertEqual(report["summary"]["parse_status"], "pass")
         self.assertEqual(report["summary"]["parity_status"], "pass")
         self.assertTrue(all(output["line_mapping"] for output in report["generated_outputs"]))
+
+    def test_facade_reexports_canonical_owners(self) -> None:
+        self.assertIs(parity.build_report, _cli.build_report)
+        self.assertIs(parity.main, _cli.main)
+        self.assertIs(parity.build_collector_output, _builders.build_collector_output)
+        self.assertIs(parity.build_harness_output, _builders.build_harness_output)
+        self.assertIs(parity.parse_powershell_text, _parsing.parse_powershell_text)
+        self.assertIs(parity.part_entry, _common.part_entry)
+
+    def set_inventory_control(self, root: Path, section: str, key: str, value: int) -> None:
+        inventory_path = root / parity.DEFAULT_INVENTORY
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["controls"][section][key] = value
+        write(inventory_path, json.dumps(inventory, indent=2) + "\n")
+
+    def assert_control_mismatch(self, root: Path, message: str) -> None:
+        report, errors, _warnings = parity.build_report(self.args(root))
+        self.assertFalse(report["validation"]["success"])
+        self.assertTrue(any(message in error for error in errors), errors)
+
+    def test_inventory_source_part_growth_fails(self) -> None:
+        with self.subTest("harness"), self.make_repo() as temp:
+            root = Path(temp)
+            write(
+                root
+                / "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
+                'function Invoke-SecondHarnessPart { Write-Output "ok" }\n',
+            )
+            self.assert_control_mismatch(
+                root, "harness source-part map does not match inventory controls: 2 != 1"
+            )
+
+        core = "project_sources/collector/source/parts/DCOIR_Collector.01_Core.ps1"
+        extra = "project_sources/collector/source/parts/DCOIR_Collector.02_Extra.ps1"
+        with self.subTest("collector"), self.make_repo(manifest_parts=[core, extra]) as temp:
+            root = Path(temp)
+            write(root / extra, 'function Invoke-ExtraCollectorPart { Write-Output "ok" }\n')
+            self.set_inventory_control(root, "collector_manifest", "expected_path_count", 2)
+            self.assert_control_mismatch(
+                root, "collector source-part map does not match inventory controls: 2 != 1"
+            )
+
+    def test_inventory_source_part_shrink_fails(self) -> None:
+        with self.subTest("harness"), self.make_repo() as temp:
+            root = Path(temp)
+            self.set_inventory_control(root, "harness_source_parts", "part_count", 2)
+            self.assert_control_mismatch(
+                root, "harness source-part map does not match inventory controls: 1 != 2"
+            )
+
+        with self.subTest("collector"), self.make_repo() as temp:
+            root = Path(temp)
+            self.set_inventory_control(root, "collector_manifest", "expected_path_count", 3)
+            self.assert_control_mismatch(
+                root, "collector source-part map does not match inventory controls: 1 != 2"
+            )
 
     def test_stale_checked_in_generated_output_fails(self) -> None:
         with self.make_repo(checked_in_harness_text='Write-Output "stale"\n') as temp:

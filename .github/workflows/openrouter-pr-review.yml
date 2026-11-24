@@ -7,7 +7,7 @@
 # - Use on a pull request issue_comment from the repository operator with /dcoir-review or legacy aliases.
 # Do not use when:
 # - Do not use for automatic PR gating, required checks, untrusted authors, or broad workflow mutation.
-# - Do not use in place of governed Prog, Adva, Codi, external Codex, or GitHub Actions review gates.
+# - Do not use in place of governed Prog, Adva, external Codex, or GitHub Actions review gates.
 # Trigger model:
 # - issue_comment created; the outer job guard requires a PR comment from non-bot malwaredevil whose body starts with a configured review-command alias. The trusted Python script remains the exact authority for command syntax and optional review-mode suffix.
 # Required inputs:

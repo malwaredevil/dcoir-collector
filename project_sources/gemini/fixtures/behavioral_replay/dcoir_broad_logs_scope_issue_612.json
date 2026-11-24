@@ -1,0 +1,384 @@
+{
+  "schema_version": "gemini_behavioral_replay_fixture_v1",
+  "fixture_id": "dcoir_broad_logs_scope_issue_612",
+  "title": "Broad-first Elastic ES|QL and KQL scope discipline across Gemini and OpenAI",
+  "source_issue_numbers": [
+    612
+  ],
+  "source_pr_numbers": [
+    614
+  ],
+  "scenario_tags": [
+    "elastic",
+    "esql",
+    "kql",
+    "logs_scope",
+    "narrowing",
+    "zero_result",
+    "provider_parity"
+  ],
+  "system_surface": "Gemini and OpenAI shared agent-runtime Elastic query source discipline",
+  "model_target_profile": {
+    "reference_baseline": "gemini-3.1-pro-preview",
+    "simulated_production": "gemini-3.5-flash",
+    "default_live_target": "gemini-3.5-flash"
+  },
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "speaker": "user",
+      "content": "An endpoint-process alert references a familiar integration, but no returned telemetry proves where events live. Give the first ES|QL pivot.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-001"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "uncertain_esql",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "FROM \"logs-*\"",
+        "bounded time range"
+      ],
+      "forbidden_markers": [
+        "FROM \"logs-endpoint.events.process-*\""
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-002",
+      "speaker": "user",
+      "content": "A returned broad discovery record directly identifies logs-endpoint.events.process-* as the only source for the specific confirmed event. Next query?",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-002"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "supported_narrow",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "justified narrowing",
+        "FROM \"logs-endpoint.events.process-*\""
+      ],
+      "forbidden_markers": [
+        "source location is unknown"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-003",
+      "speaker": "user",
+      "content": "The alert name suggests endpoint.events.process but there has been no source discovery. Is a specific FROM safe?",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-003"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "unproven_hint",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "not proof of source coverage",
+        "FROM \"logs-*\""
+      ],
+      "forbidden_markers": [
+        "FROM \"logs-endpoint.events.process-*\""
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-004",
+      "speaker": "user",
+      "content": "A narrow ES|QL query against logs-endpoint.events.network-* found zero rows. What is the next single query?",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-004"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "narrow_esql_miss",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "FROM \"logs-*\"",
+        "preserve investigative predicates",
+        "case time range"
+      ],
+      "forbidden_markers": [
+        "no telemetry exists"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-005",
+      "speaker": "user",
+      "content": "A host artifact is known but its dataset is unconfirmed. Provide initial KQL and say which source to use.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-005"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "kql_initial",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "KQL has no FROM",
+        "logs-oriented Kibana data view",
+        "avoid speculative data_stream.dataset filters"
+      ],
+      "forbidden_markers": [
+        "data_stream.dataset: endpoint.events.process"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-006",
+      "speaker": "user",
+      "content": "KQL in a process-only data view returned zero matches. A guessed dataset constraint is active. Repair the miss.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-006"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "kql_miss",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "Broaden the selected Kibana data view",
+        "remove the unsupported data_stream.dataset filter",
+        "retain the IOC"
+      ],
+      "forbidden_markers": [
+        "enterprise-wide absence confirmed"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-007",
+      "speaker": "user",
+      "content": "The task is explicitly to inspect host CPU, memory and service health, not event evidence. Choose source.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-007"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "metrics_control",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "metrics-*",
+        "host-health objective"
+      ],
+      "forbidden_markers": [
+        "always search logs only"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    },
+    {
+      "turn_id": "turn-008",
+      "speaker": "user",
+      "content": "Show whether Gemini and OpenAI should apply the same broad-first rule and whether any proposed search already ran.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-008"
+      ],
+      "allowed_assumptions": [
+        "The user-supplied context states the scope and evidence availability; no live query has been executed."
+      ],
+      "disallowed_assumptions": [
+        "A guessed integration identifies the only source of relevant telemetry.",
+        "A scoped zero-result search establishes enterprise-wide absence."
+      ],
+      "expected_behavior_tags": [
+        "provider_parity",
+        "scope_discipline"
+      ],
+      "required_markers": [
+        "Gemini and OpenAI",
+        "FROM \"logs-*\"",
+        "not an executed search"
+      ],
+      "forbidden_markers": [
+        "I searched the enterprise"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "invented_tool_or_workflow"
+      ],
+      "forbidden_behavior_tags": [
+        "unsupported_narrowing",
+        "unsupported_search_claim"
+      ],
+      "scoring_notes": "Prefer broad logs before narrow searches unless direct source evidence, a source-specific objective, or prior discovery justifies narrowing."
+    }
+  ],
+  "available_evidence_by_turn": {
+    "turn-001": [
+      "An endpoint-process alert references a familiar integration, but no returned telemetry proves where events live. Give the first ES|QL pivot.",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-002": [
+      "A returned broad discovery record directly identifies logs-endpoint.events.process-* as the only source for the specific confirmed event. Next query?",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-003": [
+      "The alert name suggests endpoint.events.process but there has been no source discovery. Is a specific FROM safe?",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-004": [
+      "A narrow ES|QL query against logs-endpoint.events.network-* found zero rows. What is the next single query?",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-005": [
+      "A host artifact is known but its dataset is unconfirmed. Provide initial KQL and say which source to use.",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-006": [
+      "KQL in a process-only data view returned zero matches. A guessed dataset constraint is active. Repair the miss.",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-007": [
+      "The task is explicitly to inspect host CPU, memory and service health, not event evidence. Choose source.",
+      "No live result is available beyond the supplied facts."
+    ],
+    "turn-008": [
+      "Show whether Gemini and OpenAI should apply the same broad-first rule and whether any proposed search already ran.",
+      "No live result is available beyond the supplied facts."
+    ]
+  },
+  "artifact_inputs": [],
+  "expected_behaviors": [
+    "Default uncertain investigative ES|QL to logs-* and narrow only on source evidence or a source-specific objective.",
+    "For KQL, explain selected Kibana data-view scope and avoid speculative dataset filters.",
+    "After narrow zero-result queries, broaden source before interpreting absence.",
+    "Keep metrics for justified host-state questions and preserve Gemini/OpenAI parity."
+  ],
+  "forbidden_behaviors": [
+    "Prematurely narrow a search from an alert or integration label alone.",
+    "Present a narrow miss as enterprise-wide evidence of absence.",
+    "Invent a KQL FROM clause or dataset constraint.",
+    "Claim to have executed an unexecuted search."
+  ],
+  "required_markers": [
+    "FROM \"logs-*\""
+  ],
+  "forbidden_markers": [
+    "enterprise-wide absence confirmed",
+    "I searched the enterprise"
+  ],
+  "expected_next_move_shapes": [
+    "One bounded next query, or a justified source-specific choice, that matches the evidence limits."
+  ],
+  "anomaly_checks": [
+    "unsupported_certainty_claims",
+    "invented_tool_or_workflow"
+  ],
+  "pass_thresholds": {
+    "minimum_required_marker_ratio": 1.0,
+    "maximum_forbidden_marker_hits": 0,
+    "maximum_anomaly_count": 0,
+    "maximum_turn_anomaly_count": 0
+  },
+  "report_expectations": {
+    "require_json_summary": true,
+    "require_markdown_report": true,
+    "report_name": "gemini_behavioral_replay_run_report"
+  }
+}

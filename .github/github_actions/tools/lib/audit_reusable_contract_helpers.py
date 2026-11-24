@@ -4,11 +4,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
-EXPECTED_PRIMARY_WORKFLOW_COUNT = 30
+from .workflow_files import iter_workflow_files
+from .workflow_uses import iter_uses_references, workflow_call_contract
 
-USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
+WORKFLOW_DIR = Path(".github/workflows")
+
 COMPOSITE_USING_RE = re.compile(r"^\s*using:\s*['\"]?composite['\"]?\s*$", re.IGNORECASE | re.MULTILINE)
 PERMISSION_ORDER = {"none": 0, "read": 1, "write": 2}
 DOUBLE_QUOTED_EXPRESSION_LITERAL_RE = re.compile(r"\$\{\{[^}]*\|\|\s*\"[^\"]*\"[^}]*\}\}")
@@ -23,32 +23,7 @@ def strip_quotes(value: str) -> str:
 
 
 def parse_workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    inputs: set[str] = set()
-    secrets: set[str] = set()
-    in_workflow_call = False
-    section: str | None = None
-    section_indent = 0
-    for line in lines:
-        stripped = line.strip()
-        indent = len(line) - len(line.lstrip(" "))
-        if stripped == "workflow_call:":
-            in_workflow_call = True
-            section = None
-            continue
-        if not in_workflow_call:
-            continue
-        if stripped in {"inputs:", "secrets:"}:
-            section = stripped[:-1]
-            section_indent = indent
-            continue
-        if section and stripped and indent <= section_indent:
-            section = None
-        if section in {"inputs", "secrets"} and indent == section_indent + 2 and stripped.endswith(":"):
-            name = stripped[:-1].strip().strip("'\"")
-            if name != "{}":
-                (inputs if section == "inputs" else secrets).add(name)
-    return inputs, secrets
+    return workflow_call_contract(path)
 
 
 def collect_mapping_after(lines: list[str], start_index: int, key: str) -> set[str]:
@@ -124,29 +99,9 @@ def required_permissions_for_text(text: str) -> dict[str, str]:
     return required
 
 
-def declares_workflow_call_github_token_secret(text: str) -> bool:
-    in_workflow_call = False
-    in_secrets = False
-    secrets_indent = 0
-    for line in text.splitlines():
-        stripped = line.strip()
-        indent = len(line) - len(line.lstrip(" "))
-        if stripped == "workflow_call:":
-            in_workflow_call = True
-            in_secrets = False
-            continue
-        if not in_workflow_call:
-            continue
-        if stripped == "secrets:":
-            in_secrets = True
-            secrets_indent = indent
-            continue
-        if in_secrets:
-            if stripped and indent <= secrets_indent:
-                in_secrets = False
-            elif indent == secrets_indent + 2 and stripped.startswith("GITHUB_TOKEN:"):
-                return True
-    return False
+def declares_workflow_call_github_token_secret(path: Path) -> bool:
+    """Detect a declared token secret through the canonical YAML mapping."""
+    return "GITHUB_TOKEN" in workflow_call_contract(path)[1]
 
 
 def rel(path: Path, repo_root: Path) -> str:
@@ -155,24 +110,9 @@ def rel(path: Path, repo_root: Path) -> str:
     return path.as_posix()
 
 
-def iter_action_metadata_files(repo_root: Path) -> list[Path]:
-    action_dir = repo_root / ACTION_DIR
-    if not action_dir.exists():
-        return []
-    return sorted(
-        path for path in action_dir.rglob("*")
-        if path.is_file() and path.name.lower() in {"action.yml", "action.yaml"}
-    )
-
-
 def iter_all_workflow_files(repo_root: Path) -> list[Path]:
-    workflow_dir = repo_root / WORKFLOW_DIR
-    if not workflow_dir.exists():
-        return []
-    return sorted(
-        path for path in workflow_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in {".yml", ".yaml"}
-    )
+    """Delegate all-workflow discovery to its canonical owner."""
+    return iter_workflow_files(repo_root / WORKFLOW_DIR)
 
 
 def local_uses_refs(source_files: list[Path]) -> tuple[list[tuple[Path, int, str]], list[tuple[Path, int, str]], list[tuple[Path, int, str]]]:
@@ -180,11 +120,7 @@ def local_uses_refs(source_files: list[Path]) -> tuple[list[tuple[Path, int, str
     action_refs: list[tuple[Path, int, str]] = []
     other_local_refs: list[tuple[Path, int, str]] = []
     for source_file in source_files:
-        for line_no, line in enumerate(source_file.read_text(encoding="utf-8").splitlines(), start=1):
-            match = USES_RE.match(line)
-            if not match:
-                continue
-            ref = strip_quotes(match.group(1))
+        for line_no, ref in iter_uses_references(source_file):
             if ref.startswith("./.github/workflows/"):
                 workflow_refs.append((source_file, line_no, ref))
             elif ref.startswith("./.github/actions/"):

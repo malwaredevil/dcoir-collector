@@ -1,0 +1,249 @@
+def python_call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = python_call_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else node.attr
+    return ""
+
+
+def python_bounded_int_expr(value: int) -> int | None:
+    return value if abs(value).bit_length() <= PYTHON_INT_EXPR_MAX_BITS else None
+
+
+def python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.AST | None:
+    if len(call.args) > position:
+        return call.args[position]
+    for keyword in call.keywords:
+        if keyword.arg in keyword_names:
+            return keyword.value
+    return None
+
+
+def python_is_proven_path_receiver(node: ast.AST) -> bool:
+    if isinstance(node, ast.Call) and python_call_name(node.func) in DEFAULT_PYTHON_PATH_CONSTRUCTORS:
+        return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return python_is_proven_path_receiver(node.left)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "joinpath":
+        return python_is_proven_path_receiver(node.func.value)
+    return False
+
+
+def python_call_uses_write_mode(
+    call: ast.Call,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    assume_path_receiver: bool = False,
+    conservative_unknown_kwargs: bool = True,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    """Return True when open-style calls can mutate filesystem contents."""
+
+    call_name = python_call_name(call.func)
+    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
+    os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
+    if call_name in os_open_names:
+        if shadowed_names and call_name.split(".", 1)[0] in shadowed_names:
+            return True
+        flags_node = python_call_arg(call, 1, "flags")
+        folded_flags = python_fold_int_expr(flags_node, local_int_bindings, None, os_module_names)
+        if folded_flags is not None:
+            access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
+            if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
+                return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
+            return True
+        if flags_node is None:
+            return has_kwargs_expansion
+        referenced_flags = python_os_open_flag_names(flags_node, os_module_names)
+        if referenced_flags & (PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES):
+            return True
+        if (
+            referenced_flags
+            and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES
+            and python_os_open_flag_expr_is_fully_known(flags_node, os_module_names, local_int_bindings)
+        ):
+            return False
+        return True
+    if isinstance(call.func, ast.Name) and call.func.id == "open":
+        if shadowed_names and "open" in shadowed_names:
+            return True
+        mode_node = call.args[1] if len(call.args) > 1 else None
+    elif call_name in {"bz2.open", "gzip.open", "lzma.open", "tarfile.open"}:
+        mode_node = call.args[1] if len(call.args) > 1 else None
+    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+        if not (assume_path_receiver or python_is_proven_path_receiver(call.func.value)):
+            return False
+        mode_node = call.args[0] if call.args else None
+    else:
+        mode_node = None
+    for keyword in call.keywords:
+        if keyword.arg == "mode":
+            mode_node = keyword.value
+            break
+    if mode_node is None:
+        return has_kwargs_expansion if conservative_unknown_kwargs else False
+    folded_mode = python_fold_string_expr(mode_node, local_int_bindings)
+    if folded_mode is not None:
+        return any(token in folded_mode.lower() for token in ("w", "a", "x", "+"))
+    return True
+
+
+def python_fold_string_expr(
+    node: ast.AST | None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+) -> str | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return str(node.value)
+    if isinstance(node, ast.Name):
+        if not local_int_bindings or node.id not in local_int_bindings:
+            return None
+        if seen_names is None:
+            seen_names = set()
+        if node.id in seen_names:
+            return None
+        bound_value = local_int_bindings[node.id]
+        if isinstance(bound_value, str):
+            return bound_value
+        if isinstance(bound_value, ast.AST):
+            return python_fold_string_expr(bound_value, local_int_bindings, seen_names | {node.id})
+    return None
+
+
+def python_fold_int_expr(
+    node: ast.AST | None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+) -> int | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return python_bounded_int_expr(int(node.value))
+    if isinstance(node, ast.Name):
+        if local_int_bindings and node.id in local_int_bindings:
+            if seen_names is None:
+                seen_names = set()
+            if node.id in seen_names:
+                return None
+            bound_value = local_int_bindings[node.id]
+            if isinstance(bound_value, int):
+                return python_bounded_int_expr(bound_value)
+            return python_fold_int_expr(
+                bound_value,
+                local_int_bindings,
+                seen_names | {node.id},
+                os_module_names,
+            )
+        return None
+    if isinstance(node, ast.Attribute):
+        if python_call_name(node.value) not in (os_module_names or DEFAULT_PYTHON_OS_MODULES):
+            return None
+        value = getattr(os, node.attr, None)
+        return python_bounded_int_expr(value) if isinstance(value, int) else None
+    if isinstance(node, ast.UnaryOp):
+        operand = python_fold_int_expr(node.operand, local_int_bindings, seen_names, os_module_names)
+        if operand is None:
+            return None
+        if isinstance(node.op, ast.Invert):
+            return python_bounded_int_expr(~operand)
+        if isinstance(node.op, ast.UAdd):
+            return python_bounded_int_expr(+operand)
+        if isinstance(node.op, ast.USub):
+            return python_bounded_int_expr(-operand)
+        return None
+    if isinstance(node, ast.BinOp):
+        left = python_fold_int_expr(node.left, local_int_bindings, seen_names, os_module_names)
+        right = python_fold_int_expr(node.right, local_int_bindings, seen_names, os_module_names)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.BitOr):
+            return python_bounded_int_expr(left | right)
+        if isinstance(node.op, ast.BitAnd):
+            return python_bounded_int_expr(left & right)
+        if isinstance(node.op, ast.BitXor):
+            return python_bounded_int_expr(left ^ right)
+        if isinstance(node.op, ast.LShift):
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return python_bounded_int_expr(left << right)
+        if isinstance(node.op, ast.RShift):
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return python_bounded_int_expr(left >> right)
+        if isinstance(node.op, ast.Add):
+            return python_bounded_int_expr(left + right)
+        if isinstance(node.op, ast.Sub):
+            return python_bounded_int_expr(left - right)
+    return None
+
+
+def python_os_open_flag_names(
+    node: ast.AST,
+    os_module_names: set[str] | None = None,
+) -> set[str]:
+    names: set[str] = set()
+    for child in ast.walk(node):
+        if (
+            isinstance(child, ast.Attribute)
+            and child.attr.startswith("O_")
+            and python_call_name(child.value) in (os_module_names or DEFAULT_PYTHON_OS_MODULES)
+        ):
+            names.add(child.attr)
+    return names
+
+
+def python_os_open_flag_expr_is_fully_known(
+    node: ast.AST,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+) -> bool:
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, int)
+    if isinstance(node, ast.Name):
+        if not local_int_bindings or node.id not in local_int_bindings:
+            return False
+        if seen_names is None:
+            seen_names = set()
+        if node.id in seen_names:
+            return False
+        bound_value = local_int_bindings[node.id]
+        if isinstance(bound_value, int):
+            return True
+        return python_os_open_flag_expr_is_fully_known(
+            bound_value,
+            os_module_names,
+            local_int_bindings,
+            seen_names | {node.id},
+        )
+    if isinstance(node, ast.Attribute):
+        return (
+            node.attr in PYTHON_OS_OPEN_KNOWN_FLAG_NAMES
+            and python_call_name(node.value) in (os_module_names or DEFAULT_PYTHON_OS_MODULES)
+        )
+    if isinstance(node, ast.UnaryOp):
+        return isinstance(node.op, (ast.Invert, ast.UAdd, ast.USub)) and python_os_open_flag_expr_is_fully_known(
+            node.operand,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        )
+    if isinstance(node, ast.BinOp):
+        if not isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor, ast.LShift, ast.RShift, ast.Add, ast.Sub)):
+            return False
+        return python_os_open_flag_expr_is_fully_known(
+            node.left,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        ) and python_os_open_flag_expr_is_fully_known(
+            node.right,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        )
+    return False

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import project_agent_knowledge as knowledge_projection
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.gemini_knowledge_consolidation_evaluation.v1'
@@ -59,30 +60,6 @@ def _resolve_repo_root(repo_root: Path, errors: list[str]) -> Path | None:
         errors.append(f'Unable to resolve repository root {repo_root}: {exc}')
         return None
     return resolved
-
-
-def _resolve_repo_path(
-    repo_root: Path,
-    value: Any,
-    label: str,
-    errors: list[str],
-) -> Path | None:
-    if not isinstance(value, str) or not value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {value}')
-        return None
-    try:
-        candidate = (repo_root / relative).resolve()
-    except (OSError, RuntimeError) as exc:
-        errors.append(f'Unable to resolve {label} {value}: {exc}')
-        return None
-    if not candidate.is_relative_to(repo_root):
-        errors.append(f'{label} escapes the repository: {value}')
-        return None
-    return candidate
 
 
 def _duplicates(values: list[str]) -> list[str]:
@@ -253,7 +230,7 @@ def evaluate_consolidation(
             errors.append('Projection manifest must be inside the repository')
             resolved_manifest = None
     else:
-        resolved_manifest = _resolve_repo_path(
+        resolved_manifest = resolve_repo_path(
             resolved_repo,
             manifest_path.as_posix(),
             'projection manifest',
@@ -297,7 +274,7 @@ def evaluate_consolidation(
         source_contract_path = None
         bundle_path = None
     else:
-        source_contract_path = _resolve_repo_path(
+        source_contract_path = resolve_repo_path(
             resolved_repo,
             manifest.get('source_contract'),
             'source contract',
@@ -319,7 +296,7 @@ def evaluate_consolidation(
             bundle_path = None
             bundle = None
         else:
-            bundle_path = _resolve_repo_path(
+            bundle_path = resolve_repo_path(
                 resolved_repo,
                 gemini_target.get('bundle_manifest'),
                 'Gemini bundle manifest',
@@ -331,7 +308,7 @@ def evaluate_consolidation(
                 else None
             )
 
-        knowledge_root = _resolve_repo_path(
+        knowledge_root = resolve_repo_path(
             resolved_repo,
             manifest.get('canonical_knowledge_root'),
             'canonical knowledge root',

@@ -1,3 +1,7 @@
+from dcoir_review.source_inventory_promotion import integrate_verified_inventory_findings
+from dcoir_review import source_inventory_candidate_receipt as inventory_receipt
+
+
 def review_assist_context_path(raw_path: str) -> Path | None:
     """Return the trusted review-assist context path or reject unexpected paths."""
     if not raw_path.strip():
@@ -60,6 +64,7 @@ def main() -> None:
 
     schema = json.loads(base.read_text(".github/dcoir_review/schemas/openrouter-pr-review.schema.json"))
     gh = base.GitHubClient(token, repo)
+    inventory_receipt.begin(gh)
     reporter = hardened.ProgressReporter(gh, pr_number, command, config)
     reaction_id = 0
     reaction_status = {"added": "not attempted", "removed": "not attempted"}
@@ -81,12 +86,22 @@ def main() -> None:
         reporter.update("reaction", f"eyes add: {reaction_status['added']}")
         reporter.update("github", "fetching PR metadata")
         pr = gh.get_pr(pr_number)
+        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
+        set_reviewed_commit = getattr(reporter, "set_reviewed_commit", None)
+        if callable(set_reviewed_commit):
+            set_reviewed_commit(reviewed_commit)
         reporter.update("github", "fetching PR diff")
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
         files = gh.list_files(pr_number)
+        set_changed_files = getattr(reporter, "set_changed_files", None)
+        if callable(set_changed_files):
+            set_changed_files(files)
         set_python_path_alias_context(build_python_path_alias_context(gh, pr, files))
         set_python_os_alias_context(build_python_os_alias_context(gh, pr, files))
+        set_python_urllib_urlopen_call_context(build_python_urllib_urlopen_call_context(gh, pr, files))
+        set_python_shadowed_name_context(build_python_shadowed_name_context(gh, pr, files))
+        set_python_scoped_shadowed_name_context(build_python_scoped_shadowed_name_context(gh, pr, files))
         try:
             prior_successful_review = has_prior_successful_context_review(gh, pr_number)
             reporter.update("review-mode", f"prior context review found: {str(prior_successful_review).lower()}")
@@ -94,6 +109,9 @@ def main() -> None:
             prior_successful_review = False
             reporter.update("review-mode", f"prior context review readback failed; using first-pass posture: {str(exc)[:240]}")
         review_mode = review_mode_for_command(comment_body, command, config, prior_successful_review)
+        set_context_mode = getattr(reporter, "set_context_mode", None)
+        if callable(set_context_mode):
+            set_context_mode(review_mode)
         deep_context_block, context_summary = build_deep_context_block(gh, pr, files, config, review_mode)
         review_assist_ctx = load_review_assist_context(config)
         if review_assist_ctx:
@@ -102,6 +120,8 @@ def main() -> None:
             reporter.update("review-assist-context", f"injected {len(review_assist_ctx)} chars of PSScriptAnalyzer context")
         safe_context_summary = sanitize_context_summary(context_summary, config)
         reporter.update("context", safe_context_summary)
+        from dcoir_review import normalized_finding_selection
+
         risk_sentinels = hardened.detect_risk_sentinels(diff, getattr(config, "risk_sentinel_max_anchors", 12))
         if risk_sentinels and getattr(config, "risk_sentinel_quality_gate", True):
             reporter.update("risk-sentinel", f"detected {len(risk_sentinels)} high-risk changed-line signals: {hardened.risk_sentinel_digest(risk_sentinels)}")
@@ -113,7 +133,7 @@ def main() -> None:
             "metadata/review-context.json",
             {
                 "pr_number": pr_number,
-                "reviewed_head_sha": str(pr.get("head", {}).get("sha", "") or ""),
+                "reviewed_head_sha": reviewed_commit,
                 "command": command,
                 "debug": bool(getattr(config, "debug", False)),
                 "workflow_run_id": base.workflow_run_id() if hasattr(base, "workflow_run_id") else os.environ.get("GITHUB_RUN_ID", ""),
@@ -156,18 +176,59 @@ def main() -> None:
             context_summary,
             gh,
         )
+        inventory_receipt.restore(gh, reviewed_commit, result)
         reporter.update("normalize", "mapping model findings to changed diff lines")
         findings, unanchored_findings = split_findings_with_review_body_fallback(result, config, line_index, diff, risk_sentinels)
+        normalized_candidates = [dict(item) for item in findings if isinstance(item, dict)]
         findings = hardened.add_risk_sentinel_fallback_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         hardened.enforce_risk_sentinel_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
+        findings, inventory_proof = integrate_verified_inventory_findings(
+            result, findings, config, line_index, reviewed_commit,
+            lambda path, ref: fetch_pr_file_text(gh, path, ref), hardened
+        )
+        hardened.write_debug_json_artifact_safely(
+            config, "metadata/source-inventory-promotion.json", inventory_proof
+        )
+        if inventory_proof["advisories"]:
+            reporter.update("source-inventory-verification", str(inventory_proof))
 
         comments: list[dict[str, Any]] = []
+        status_findings: list[dict[str, Any]] = []
         for finding in findings:
-            comments.extend(build_review_comments_for_finding(finding, model_used, config))
+            finding_model = (
+                "DCOIR source-backed verification"
+                if finding.get("_dcoir_verified_source_inventory") is True else model_used
+            )
+            finding_comments = build_review_comments_for_finding(finding, finding_model, config)
+            status_finding = dict(finding)
+            review_anchors: list[dict[str, Any]] = []
+            for comment in finding_comments:
+                if not isinstance(comment, dict):
+                    continue
+                path = str(comment.get("path", "") or "").strip()
+                try:
+                    line = int(
+                        comment.get("line", 0)
+                        or comment.get("original_line", 0)
+                        or 0
+                    )
+                except (TypeError, ValueError):
+                    line = 0
+                if path and line > 0:
+                    review_anchors.append({"path": path, "line": line})
+            if review_anchors:
+                status_finding["_dcoir_status_review_anchors"] = review_anchors[:6]
+            status_findings.append(status_finding)
+            comments.extend(finding_comments)
 
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
-        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
         review_body = append_context_to_review_body(
             hardened.build_review_body_with_unanchored(result, findings, unanchored_findings, model_used, config, reviewed_commit),
             review_mode,
@@ -176,7 +237,13 @@ def main() -> None:
         )
         unanchored_note = f" and {len(unanchored_findings)} unanchored review-body findings" if unanchored_findings else ""
         reporter.update("github-review", f"posting GitHub review with {len(comments)} inline comments{unanchored_note}")
-        gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        review = gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        set_findings = getattr(reporter, "set_findings", None)
+        if callable(set_findings):
+            set_findings(status_findings)
+        set_formal_review = getattr(reporter, "set_formal_review", None)
+        if callable(set_formal_review):
+            set_formal_review(review)
         hardened.remove_eyes_reaction(gh, trigger_comment_id, reaction_id, reaction_status)
         tier_note = f"; service_tier={service_tier}" if service_tier else ""
         reporter.update("reaction", f"eyes add: {reaction_status['added']}; eyes remove: {reaction_status['removed']}")
@@ -192,6 +259,9 @@ def main() -> None:
     finally:
         set_python_path_alias_context({})
         set_python_os_alias_context({})
+        set_python_urllib_urlopen_call_context({})
+        set_python_shadowed_name_context({})
+        set_python_scoped_shadowed_name_context({})
         if config.script_timeout_seconds > 0 and hasattr(signal, "SIGALRM"):
             signal.alarm(0)
 

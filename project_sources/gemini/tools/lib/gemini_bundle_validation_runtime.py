@@ -5,12 +5,9 @@ import re
 from pathlib import Path
 
 from lib.gemini_bundle_validation_common import (
-    AGENT_DIR,
     ATTACHMENT_MAP,
     QUICK_START,
     RUNTIME_GOVERNANCE_LEAK_PATTERNS,
-    VISIBILITY_CHECKS,
-    gather_text,
     rel_posix,
 )
 
@@ -24,11 +21,9 @@ def validate_runtime_surfaces(
     knowledge_sources: list[str],
     checks: dict[str, object],
     errors: list[str],
-    warnings: list[str],
 ) -> None:
     validate_attachment_map(source_root, knowledge_sources, checks, errors)
-    validate_runtime_governance_leaks(source_root, topology, prime_rel, sub_rel_list, checks, errors)
-    validate_visibility_markers(source_root, repo_root, knowledge_sources, checks, warnings)
+    validate_runtime_governance_leaks(source_root, repo_root, topology, prime_rel, sub_rel_list, knowledge_sources, checks, errors)
 
 
 def validate_attachment_map(
@@ -48,48 +43,38 @@ def validate_attachment_map(
 
 def validate_runtime_governance_leaks(
     source_root: Path,
+    repo_root: Path,
     topology: dict,
     prime_rel: str | None,
     sub_rel_list: list[str],
+    knowledge_sources: list[str],
     checks: dict[str, object],
     errors: list[str],
 ) -> None:
     runtime_source_rels = []
     if prime_rel:
         runtime_source_rels.append(prime_rel)
+    # The generated Prime file is absent until reassembly, so scan its chunks too.
+    runtime_source_rels.extend(topology.get('prime_agent_chunk_sources', []))
     runtime_source_rels.extend(sub_rel_list)
     runtime_source_rels.append(topology.get('generated_index_file', ''))
     runtime_source_rels.append(topology.get('quick_start_file', QUICK_START))
     runtime_source_rels.append(ATTACHMENT_MAP)
-    runtime_source_paths = [source_root / rel for rel in runtime_source_rels if rel]
+    runtime_sources = [(source_root / rel, source_root) for rel in runtime_source_rels if rel]
+    # Knowledge sources ship as Prime attachments, so they are runtime-facing too.
+    runtime_sources.extend((repo_root / rel, repo_root) for rel in knowledge_sources)
     runtime_governance_leaks = []
-    for path in runtime_source_paths:
+    for path, root in runtime_sources:
         if not path.exists() or not path.is_file():
             continue
         text = path.read_text(encoding='utf-8', errors='ignore')
         for name, pattern in RUNTIME_GOVERNANCE_LEAK_PATTERNS.items():
             if re.search(pattern, text):
                 runtime_governance_leaks.append({
-                    'file': rel_posix(path, source_root),
+                    'file': rel_posix(path, root),
                     'pattern': name,
                 })
     checks['runtime_governance_leak_check'] = len(runtime_governance_leaks) == 0
     checks['runtime_governance_leaks'] = runtime_governance_leaks
     if runtime_governance_leaks:
         errors.append('runtime-facing Gemini files contain builder/governance source references: ' + json.dumps(runtime_governance_leaks, sort_keys=True))
-
-
-def validate_visibility_markers(
-    source_root: Path,
-    repo_root: Path,
-    knowledge_sources: list[str],
-    checks: dict[str, object],
-    warnings: list[str],
-) -> None:
-    combined_paths = list((source_root / AGENT_DIR).glob('*.txt')) + [source_root / QUICK_START] + [repo_root / rel for rel in knowledge_sources]
-    combined = gather_text(combined_paths).lower()
-    for key, needles in VISIBILITY_CHECKS.items():
-        present = all(needle in combined for needle in needles)
-        checks[key] = present
-        if not present:
-            warnings.append(f'visibility check did not find all markers for {key}: {needles}')

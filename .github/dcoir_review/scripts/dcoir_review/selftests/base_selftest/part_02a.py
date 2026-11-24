@@ -7,6 +7,22 @@ assert "process.env.DB_PASSWORD" in safe_reference
 assert "${OPENROUTER_API_KEY}" in safe_reference
 assert "${{ secrets.OPENROUTER_TOKEN }}" in safe_reference
 
+safe_source_references = "\r\n".join(
+    [
+        'token = os.environ["DCOIR_TOKEN"]',
+        'api_token = os.getenv("DCOIR_TOKEN")',
+        'headers = {"Authorization": f"Bearer {api_token}"}',
+        '$headers = @{ Authorization = "Bearer $env:DCOIR_TOKEN" }',
+        '$headers = @{ Authorization = "Bearer $token" }',
+        'headers.Authorization = `Bearer ${process.env.DCOIR_TOKEN}`',
+    ]
+) + "\r\n"
+assert mod.sanitize_text(safe_source_references, config) == safe_source_references
+static_auth = 'headers = {"Authorization": "Bearer abcdefghijklmnopqrstuvwxyz"}'
+assert mod.sanitize_text(static_auth, config) == 'headers = {"Authorization": "Bearer [redacted-secret]"}'
+redaction_disabled = replace(config, redact_secret_literals=False)
+assert mod.sanitize_text(static_auth, redaction_disabled) == static_auth
+
 original_read_text = mod.read_text
 
 def fake_read_text(path: str, default: str = "") -> str:

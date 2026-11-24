@@ -21,7 +21,7 @@ permissions:
 jobs:
   enable_auto_merge:
     name: Enable auto-merge for safe Dependabot PRs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.repository == 'DCOIR-Collector/dcoir-collector' &&

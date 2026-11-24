@@ -1,0 +1,323 @@
+def python_line_imports_urllib_urlopen_alias(text: str) -> bool:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return bool(re.search(r"^\s*from\s+urllib\.request\s+import\s+.*\burlopen\b", text))
+    for node in module.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "urllib.request":
+            return any(alias.name == "urlopen" for alias in node.names)
+    return False
+
+
+def python_shadowed_name_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+
+    def collect_target(node: ast.AST) -> None:
+        if isinstance(node, ast.Name):
+            roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
+        elif isinstance(node, (ast.Tuple, ast.List)):
+            for item in node.elts:
+                collect_target(item)
+        elif isinstance(node, ast.Starred):
+            collect_target(node.value)
+
+    def collect_arguments(node: ast.arguments) -> None:
+        for argument in (
+            *node.posonlyargs,
+            *node.args,
+            *node.kwonlyargs,
+        ):
+            roots.add(argument.arg)
+        if node.vararg is not None:
+            roots.add(node.vararg.arg)
+        if node.kwarg is not None:
+            roots.add(node.kwarg.arg)
+
+    class _ModuleScopeShadowVisitor(ast.NodeVisitor):
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if alias.name not in {"urllib", "urllib.request"}:
+                    roots.add(imported_name)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name
+                if not (
+                    node.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) and not (
+                    node.module == "urllib"
+                    and alias.name == "request"
+                ):
+                    roots.add(imported_name)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            roots.add(node.name)
+
+        def visit_Assign(self, node: ast.Assign) -> None:
+            for target in node.targets:
+                collect_target(target)
+            self.generic_visit(node.value)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            collect_target(node.target)
+            if node.value is not None:
+                self.generic_visit(node.value)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> None:
+            collect_target(node.target)
+            self.generic_visit(node.value)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            collect_target(node.target)
+            self.generic_visit(node.value)
+
+        def visit_For(self, node: ast.For) -> None:
+            collect_target(node.target)
+            self.generic_visit(node.iter)
+            for statement in node.body:
+                self.visit(statement)
+            for statement in node.orelse:
+                self.visit(statement)
+
+        def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+            collect_target(node.target)
+            self.generic_visit(node.iter)
+            for statement in node.body:
+                self.visit(statement)
+            for statement in node.orelse:
+                self.visit(statement)
+
+        def visit_With(self, node: ast.With) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+                self.generic_visit(item.context_expr)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+                self.generic_visit(item.context_expr)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name:
+                roots.add(node.name)
+            if node.type is not None:
+                self.generic_visit(node.type)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            collect_arguments(node.args)
+            self.visit(node.body)
+
+        def _visit_comprehension_generators(self, generators: list[ast.comprehension]) -> None:
+            for generator in generators:
+                collect_target(generator.target)
+                self.visit(generator.iter)
+                for if_clause in generator.ifs:
+                    self.visit(if_clause)
+
+        def visit_ListComp(self, node: ast.ListComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
+        def visit_SetComp(self, node: ast.SetComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
+        def visit_DictComp(self, node: ast.DictComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.key)
+            self.visit(node.value)
+
+        def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
+    visitor = _ModuleScopeShadowVisitor()
+    for statement in getattr(module, "body", []):
+        visitor.visit(statement)
+    return roots
+
+
+def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
+    if not shadowed_roots:
+        return call_names
+    return {
+        call_name
+        for call_name in call_names
+        if call_name.split(".", 1)[0] not in shadowed_roots
+    }
+
+
+def python_line_is_known_urllib_urlopen(
+    text: str,
+    allow_imported_alias: bool = False,
+    known_call_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    module = python_parse_diff_line(text)
+    call_names = set(known_call_names or ())
+    if allow_imported_alias:
+        call_names.add("urlopen")
+    if not call_names:
+        return False
+    if module is not None:
+        active_shadowed_names = set(shadowed_names or ())
+        active_shadowed_names.update(python_shadowed_name_roots(module))
+        call_names = python_prune_shadowed_urlopen_call_names(
+            call_names,
+            active_shadowed_names,
+        )
+        if not call_names:
+            return False
+        for node in ast.walk(module):
+            if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
+                return True
+        return False
+    pattern = r"\b(?:" + "|".join(re.escape(name) for name in sorted(call_names, key=len, reverse=True)) + r")\s*\("
+    return bool(re.search(pattern, text))
+
+
+def python_line_has_explicit_file_write_call(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    allow_urllib_urlopen_alias: bool = False,
+    known_call_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    """Distinguish real file-write APIs from lexical open() lookalikes."""
+
+    module = python_parse_diff_line(text)
+    if module is None:
+        if python_line_is_known_urllib_urlopen(
+            text,
+            allow_urllib_urlopen_alias,
+            known_call_names,
+            shadowed_names,
+        ):
+            return False
+        # Preserve legacy coverage when a single diff line cannot be parsed safely.
+        return True
+    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    os_names = os_module_names or DEFAULT_PYTHON_OS_MODULES
+    scoped_bindings = dict(local_int_bindings or {})
+    active_shadowed_names = set(shadowed_names or ())
+    active_shadowed_names.update(python_shadowed_name_roots(module))
+    for statement in module.body:
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    scoped_bindings[target.id] = statement.value
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name) and statement.value is not None:
+            scoped_bindings[statement.target.id] = statement.value
+        for node in ast.walk(statement):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            call_name = python_call_name(func)
+            if call_name.endswith("open") and call_name.split(".", 1)[0] in active_shadowed_names:
+                return True
+            if isinstance(func, ast.Name) and func.id == "open":
+                if python_call_uses_write_mode(
+                    node,
+                    os_module_names,
+                    scoped_bindings,
+                    conservative_unknown_kwargs=False,
+                    shadowed_names=active_shadowed_names,
+                ):
+                    return True
+                continue
+            if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
+                return True
+            if isinstance(func, ast.Attribute) and func.attr == "open":
+                os_open_names = {f"{name}.open" for name in os_names}
+                known_mode_checked = {"bz2.open", "gzip.open", "lzma.open", "tarfile.open", *os_open_names}
+                value_is_path, _value_has_dynamic = python_path_expr_info(
+                    func.value,
+                    constructor_names,
+                    os_names,
+                )
+                if not value_is_path and call_name not in known_mode_checked:
+                    return True
+                if python_call_uses_write_mode(
+                    node,
+                    os_names,
+                    scoped_bindings,
+                    assume_path_receiver=value_is_path,
+                    conservative_unknown_kwargs=False,
+                    shadowed_names=active_shadowed_names,
+                ):
+                    return True
+    return False
+
+
+def python_direct_dynamic_file_write(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return False
+    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {"write_text", "write_bytes"}:
+            continue
+        value = node.func.value
+        if python_target_key(value):
+            continue
+        value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
+        if value_is_path and value_has_dynamic:
+            return True
+    if python_direct_dynamic_open_write(
+        text,
+        path_constructor_names,
+        os_module_names,
+        local_int_bindings,
+        shadowed_names,
+    ):
+        return True
+    return False
+
+
+def python_diff_shadowed_name_roots(diff: str) -> dict[str, set[str]]:
+    sources_by_path: dict[str, list[str]] = {}
+    for diff_line in iter_python_diff_lines_with_context(diff):
+        if Path(diff_line.path).suffix.lower() == ".py":
+            sources_by_path.setdefault(diff_line.path, []).append(diff_line.text)
+    shadowed_names_by_path: dict[str, set[str]] = {}
+    for path, lines in sources_by_path.items():
+        module = python_parse_diff_line("\n".join(lines))
+        if module is None:
+            continue
+        shadowed_names = python_shadowed_name_roots(module)
+        if shadowed_names:
+            shadowed_names_by_path[path] = shadowed_names
+    return shadowed_names_by_path

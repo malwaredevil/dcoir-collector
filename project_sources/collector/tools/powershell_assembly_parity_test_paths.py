@@ -6,6 +6,8 @@ import shutil
 import unittest.mock
 from pathlib import Path
 
+import powershell_assembly_parity_builders as _builders
+import powershell_assembly_parity_common as _common
 from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity, write
 
 
@@ -116,8 +118,8 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
                             link.symlink_to(outside_part)
                         except (NotImplementedError, OSError) as exc:
                             self.skipTest(f"symlink creation is unavailable: {exc}")
-                    original_part_entry = parity.part_entry
-                    original_file_facts = parity.file_facts
+                    original_part_entry = _builders.part_entry
+                    original_file_facts = _common.file_facts
 
                     def assert_repo_contained(path: Path) -> None:
                         try:
@@ -133,7 +135,7 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
                         assert_repo_contained(path)
                         return original_file_facts(path, repo_root)
 
-                    with unittest.mock.patch.object(parity, "part_entry", side_effect=guarded_part_entry), unittest.mock.patch.object(parity, "file_facts", side_effect=guarded_file_facts):
+                    with unittest.mock.patch.object(_builders, "part_entry", side_effect=guarded_part_entry), unittest.mock.patch.object(_common, "file_facts", side_effect=guarded_file_facts):
                         report, errors, _warnings = parity.build_report(self.args(root))
 
                 self.assertFalse(report["validation"]["success"])
@@ -174,8 +176,8 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
                 harness_link.symlink_to(outside)
             except (NotImplementedError, OSError) as exc:
                 self.skipTest(f"symlink creation is unavailable: {exc}")
-            original_part_entry = parity.part_entry
-            original_read_part_text = parity.read_part_text
+            original_part_entry = _builders.part_entry
+            original_read_part_text = _builders.read_part_text
 
             def assert_repo_contained(path: Path) -> None:
                 try:
@@ -191,7 +193,7 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
                 assert_repo_contained(path)
                 return original_read_part_text(path)
 
-            with unittest.mock.patch.object(parity, "part_entry", side_effect=guarded_part_entry), unittest.mock.patch.object(parity, "read_part_text", side_effect=guarded_read_part_text):
+            with unittest.mock.patch.object(_builders, "part_entry", side_effect=guarded_part_entry), unittest.mock.patch.object(_builders, "read_part_text", side_effect=guarded_read_part_text):
                 report, errors, _warnings = parity.build_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])

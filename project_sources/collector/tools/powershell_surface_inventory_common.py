@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from powershell_analyzer_contract import AnalyzerContractError, repo_relative_input_path
+from collector_tool_path_safety import AnalyzerContractError, repo_relative_input_path
 
 SCHEMA_VERSION = "dcoir_powershell_surface_inventory_v1"
 ISSUE_NUMBER = 261

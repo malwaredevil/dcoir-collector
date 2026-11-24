@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Dict, List
-
-
-def ensure_dir(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
-
-
-def write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def render_markdown_report(results: List[Dict[str, Any]], metadata: Dict[str, Any] | None = None) -> str:
@@ -73,27 +63,3 @@ def render_markdown_report(results: List[Dict[str, Any]], metadata: Dict[str, An
             lines.append(f"  anomalies: {anomaly_details or 'none'}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
-
-
-def write_reports(
-    output_dir: Path,
-    report_name: str,
-    results: List[Dict[str, Any]],
-    metadata: Dict[str, Any] | None = None,
-) -> Dict[str, str]:
-    ensure_dir(output_dir)
-    json_path = output_dir / f"{report_name}.json"
-    markdown_path = output_dir / f"{report_name}.md"
-    metadata = metadata or {}
-    validation_messages = metadata.get("validation_messages", [])
-    validation_error_count = sum(1 for message in validation_messages if message.get("level") == "error")
-    aggregate = {
-        "success": bool(results) and all(result.get("success") for result in results) and validation_error_count == 0,
-        "result_count": len(results),
-        "turn_count": sum(int(result.get("turn_count", 0)) for result in results),
-        "turn_success_count": sum(int(result.get("turn_success_count", 0)) for result in results),
-        "validation_error_count": validation_error_count,
-    }
-    write_json(json_path, {"summary": aggregate, "metadata": metadata, "results": results})
-    markdown_path.write_text(render_markdown_report(results, metadata), encoding="utf-8")
-    return {"json_report": str(json_path), "markdown_report": str(markdown_path)}

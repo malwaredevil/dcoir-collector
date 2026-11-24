@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from powershell_analyzer_baseline import baseline_metadata
+from collector_tool_path_safety import repo_relative_input_path
 from powershell_analyzer_contract import (
     ISSUE_NUMBER,
     REQUIRED_POLICY_RULES,
     SCHEMA_VERSION,
     AnalyzerContractError,
-    repo_relative_input_path,
     safe_relpath,
     sha256_file,
 )
@@ -150,7 +150,9 @@ def empty_report(
     baseline_info = baseline_metadata(None, baseline_path, repo_root)
     if args.baseline_json:
         baseline_info["path"] = safe_relpath(baseline_path, repo_root) if baseline_path is not None else str(args.baseline_json)
-        baseline_info["accepted"] = baseline_path is not None
+        # An early error report means the supplied baseline was not accepted.
+        # Path resolution alone does not prove the baseline was read or valid.
+        baseline_info["accepted"] = False
     return {
         "schema_version": SCHEMA_VERSION,
         "issue": ISSUE_NUMBER,

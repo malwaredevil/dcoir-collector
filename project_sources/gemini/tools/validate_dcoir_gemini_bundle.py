@@ -11,8 +11,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--source-root', required=True)
     parser.add_argument('--output-dir', required=True)
+    parser.add_argument(
+        '--version',
+        default=None,
+        help='Bundle version override the compiler will use; validated instead of the derived version.',
+    )
     args = parser.parse_args()
-    return validate_bundle(Path(args.source_root), Path(args.output_dir))
+    return validate_bundle(Path(args.source_root), Path(args.output_dir), args.version)
 
 
 if __name__ == '__main__':

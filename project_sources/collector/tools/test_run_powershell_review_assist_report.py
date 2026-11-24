@@ -79,6 +79,7 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
     def test_real_report_contract_passes_and_preserves_boundaries(self) -> None:
         with self.make_repo() as temp:
             report = self.build(Path(temp))
+            checked_inventory = read_json(Path(temp) / review.DEFAULT_SURFACE_INVENTORY)
 
         self.assertTrue(report["validation"]["success"])
         self.assertEqual(report["summary"]["normalized_finding_count"], 22)
@@ -89,7 +90,12 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         self.assertGreaterEqual(report["summary"]["carried_forward_warning_count"], 8)
         self.assertTrue(any("No workflow YAML" in claim for claim in report["non_claims"]))
         self.assertEqual(report["artifact_contract"]["workflow_behavior"], "none")
-        self.assertEqual(report["surface_inventory"]["summary"]["total_surfaces"], 249)
+        # Track the checked-in inventory instead of pinning a count that every
+        # inventory refresh would have to re-edit.
+        self.assertEqual(
+            report["surface_inventory"]["summary"]["total_surfaces"],
+            checked_inventory["summary"]["total_surfaces"],
+        )
         self.assertTrue(report["surface_inventory"]["excluded_paths"])
         self.assertTrue(report["surface_inventory"]["reference_paths"])
         self.assertTrue(

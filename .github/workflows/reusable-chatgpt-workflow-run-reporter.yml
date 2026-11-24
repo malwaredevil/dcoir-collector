@@ -25,7 +25,7 @@ permissions:
   actions: read
 jobs:
   report-workflow-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ inputs.caller_event_name == 'workflow_dispatch' || github.event.workflow_run.name != '80 Reporting - Workflow Run Reporter' }}
     steps:
       - name: Checkout repository

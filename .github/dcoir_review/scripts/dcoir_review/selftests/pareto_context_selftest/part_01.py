@@ -44,8 +44,8 @@ os.environ["PR_NUMBER"] = "287"
 os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
 config = mod.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
-assert config.model == "anthropic/claude-opus-5"
-assert config.model_stack == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
+assert config.model == "anthropic/claude-opus-5.5"
+assert config.model_stack == ["anthropic/claude-opus-5.5", "openai/gpt-5.6-sol-pro"]
 assert config.pareto_min_coding_score == 0.80
 assert config.auto_cost_quality_tradeoff == 2
 assert "google/gemini-*" not in config.auto_allowed_models
@@ -62,6 +62,30 @@ assert config.per_file_review_max_files == 100
 assert config.fix_synthesis_enabled is True
 assert config.required_finding_reserved_budget == 9
 assert config.required_finding_min_per_family == 2
+
+with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+    handle.write(
+        "\n".join(
+            [
+                "commands:",
+                "  - /or-review",
+                "model: openrouter/auto",
+                "adversarial_confirmation_model_stack:",
+                "  - openrouter/free",
+                "smoke_test_free_model: false",
+            ]
+        )
+    )
+    free_stage_config_path = handle.name
+try:
+    try:
+        mod.load_pareto_context_config(free_stage_config_path)
+    except RuntimeError as exc:
+        assert "smoke-test only" in str(exc)
+    else:
+        raise AssertionError("free-router stage stack without smoke opt-in should fail")
+finally:
+    Path(free_stage_config_path).unlink(missing_ok=True)
 
 
 fix_synthesis_verifier_marker = "single-line-pr-head-anchor"

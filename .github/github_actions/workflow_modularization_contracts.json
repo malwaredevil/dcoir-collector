@@ -1,13 +1,13 @@
 {
-  "composite_action_count": 19,
-  "existing_workflow_count": 30,
+  "composite_action_count": 17,
+  "existing_workflow_count": 33,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
   "inventory_outputs": {
     "json": ".github/github_actions/workflow_inventory.json",
     "markdown": ".github/github_actions/workflow_inventory.md"
   },
-  "primary_workflow_count": 30,
+  "primary_workflow_count": 33,
   "required_contract_families": [
     "static-validation",
     "required-surfaces",
@@ -33,9 +33,11 @@
     "maintenance-audit",
     "windows-powershell-51",
     "codeql-security",
-    "openrouter-pr-review"
+    "dcoir-model-benchmark",
+    "openrouter-pr-review",
+    "openai-dcoir-behavioral-replay"
   ],
-  "reusable_workflow_count": 29,
+  "reusable_workflow_count": 31,
   "schema_version": "dcoir_workflow_modularization_contracts_v1",
   "workflow_contracts": [
     {
@@ -129,6 +131,16 @@
       "target_architecture": "Thin entry workflow calling family-specific reusable validation contracts with PR triggers and path filters visible. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
     },
     {
+      "acceptance_evidence": "Unfiltered converted_to_draft event, matching per-PR concurrency group, cancellation of active validation, and no repository checkout or permissions.",
+      "contract_family": "static-validation",
+      "family": "validation",
+      "file": ".github/workflows/cancel-pr-validation-on-draft.yml",
+      "migration_status": "intentionally-inline",
+      "risk": "medium",
+      "rollback": "Restore the unfiltered Draft-conversion trigger and matching validate-on-pr concurrency group.",
+      "target_architecture": "Intentionally inline concurrency-only PR lifecycle cancellation workflow sharing the validation entry workflow's concurrency group without checking out or executing repository code."
+    },
+    {
       "acceptance_evidence": "Push, schedule, manual behavior, required-surface coverage, artifacts, and report readback.",
       "contract_family": "required-surfaces",
       "family": "validation",
@@ -209,7 +221,7 @@
       "target_architecture": "Gemini bundle reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
     },
     {
-      "acceptance_evidence": "Exact-head ten-command agent-runtime validation, combined release self-test, static parity report, direct two-GPT delivery artifact contents/hashes, full evidence artifact, workflow run/job readback, and manual/live evidence boundary.",
+      "acceptance_evidence": "Exact-head thirteen-command agent-runtime validation, combined release self-test, static parity report, direct two-GPT delivery artifact contents/hashes, full evidence artifact, workflow run/job readback, and manual/live evidence boundary.",
       "contract_family": "openai-gpt-bundle",
       "family": "OpenAI GPT packaging",
       "file": ".github/workflows/manual-openai-gpt-deployment-package-build.yml",
@@ -217,6 +229,16 @@
       "risk": "medium",
       "rollback": "Remove the OpenAI deployment package entry/reusable workflows and retain the existing target-specific builders and manual WebUI procedure.",
       "target_architecture": "One operator-triggered entry workflow calls a family-specific reusable workflow that runs the governed agent-runtime validation contract, unified static parity reporting, deterministic two-target delivery assembly, direct artifact surfacing, evidence upload, and ChatGPT workflow report section without mutating live OpenAI targets."
+    },
+    {
+      "acceptance_evidence": "No-network plan output, exact candidate/request count, ZDR and data_collection=deny request contract, paid-live double confirmation and max-request cap, exact-head JSON/Markdown artifacts, workflow run/job readback, and proof that production model configuration and GitHub review publication remain unchanged.",
+      "contract_family": "dcoir-model-benchmark",
+      "family": "DCOIR Review model benchmark",
+      "file": ".github/workflows/manual-dcoir-review-model-benchmark.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Remove the benchmark entry/reusable workflow pair and continue using the existing no-publication evaluator script directly until the workflow contract is corrected.",
+      "target_architecture": "Thin operator-dispatch entry workflow plus reusable DCOIR model-benchmark module. Candidate model IDs and groups remain version-controlled non-secret configuration; the reusable module owns deterministic self-tests, no-network planning, bounded paid-live OpenRouter evaluation, privacy/provider controls, human-readable summary output, and durable artifacts without changing production DCOIR Review configuration."
     },
     {
       "acceptance_evidence": "Live/model comparison report and secret handling.",
@@ -249,14 +271,14 @@
       "target_architecture": "Gemini production-like harness reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
     },
     {
-      "acceptance_evidence": "Happy/failure evidence and API fallback handling.",
+      "acceptance_evidence": "Happy/failure Gemini evidence, API fallback handling, and explicit opt-in exact-head OpenAI DCOIR Terra bridge evidence.",
       "contract_family": "gemini-behavioral-replay",
       "family": "Gemini live/manual replay",
       "file": ".github/workflows/run-gemini-behavioral-replay-manual.yml",
       "migration_status": "active",
       "risk": "medium",
       "rollback": "Restore prior inline live replay workflow body.",
-      "target_architecture": "Gemini live/manual replay reusable workflow with live API fallback evidence contract. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+      "target_architecture": "Default-branch operator replay entry: Gemini remains the default lane; an explicit run_openai_dcoir_replay dispatch flag routes exclusively to the governed OpenAI DCOIR GPT-5.6 Terra reusable workflow using the dispatched github.sha as an exact-head guard. Shared setup, artifact upload, validation, packaging, and report mechanics remain in repo-local reusable/composite modules."
     },
     {
       "acceptance_evidence": "Workflow action-version audit, consistency drift audit, inventory check, contract audit, and report section.",
@@ -337,6 +359,16 @@
       "risk": "high",
       "rollback": "Restore the prior inline DCOIR Review workflow body and remove reusable-openrouter-pr-review.yml if the reusable module breaks trusted comment-triggered review behavior.",
       "target_architecture": "Thin comment-triggered entry workflow plus reusable DCOIR Review module. The entry workflow keeps the issue_comment trigger, concurrency, operator guard, explicit permissions, and explicit secret forwarding visible; reusable-openrouter-pr-review.yml owns the trusted default-branch checkout, static context readback, progress/status comments, model-stack config, debug artifacts, and script invocation."
+    },
+    {
+      "acceptance_evidence": "Exact-head guard, package selftests, live API artifact matrix, scorer results, and fail-closed API errors.",
+      "contract_family": "openai-dcoir-behavioral-replay",
+      "family": "OpenAI DCOIR live/manual replay",
+      "file": ".github/workflows/run-openai-dcoir-behavioral-replay-manual.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior static and targeted capture evidence posture.",
+      "target_architecture": "Exact-head GPT-5.6 Terra replay with reusable workflow, governed package validation, shared behavioral scoring, and durable artifact reporting."
     }
   ]
 }

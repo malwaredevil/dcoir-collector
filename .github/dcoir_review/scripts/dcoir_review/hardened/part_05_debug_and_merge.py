@@ -106,7 +106,14 @@ def merge_review_results(
     retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "").strip()
     initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
     summary = retry_summary or initial_summary
-    if initial_summary and retry_summary and normalized_quality_text(initial_summary) != normalized_quality_text(retry_summary):
+    # Only claim preserved first-pass findings when there are some; the note
+    # otherwise reads as a summary-only problem and forces a needless retry.
+    if (
+        result_findings(initial_result)
+        and initial_summary
+        and retry_summary
+        and normalized_quality_text(initial_summary) != normalized_quality_text(retry_summary)
+    ):
         summary = (
             f"{retry_summary}\n\n"
             "The review result also preserves distinct actionable findings returned by the first pass when they "
@@ -155,6 +162,7 @@ def merge_quality_retry_results(
     config: Any,
     line_index: dict[tuple[str, int], int] | None,
     retry_reason: str,
+    retry_model: str = "",
 ) -> dict[str, Any]:
     """Merge a quality retry without reviving first-pass rejected candidates.
 
@@ -202,6 +210,12 @@ def merge_quality_retry_results(
     merged_result["_quality_retry_initial_rejected_count"] = len(initial_findings) - len(surviving_initial)
     merged_result["_quality_retry_retry_finding_count"] = len(retry_findings)
     merged_result["_quality_retry_initial_raw_digest"] = raw_findings_digest(initial_result)
+    if retry_model:
+        # Complete the retry record so downstream gates can verify the repair.
+        merged_result["_quality_retry_provider_result_keys"] = (
+            sorted(str(key) for key in retry_result) if isinstance(retry_result, dict) else []
+        )
+        merged_result["_quality_retry_model"] = str(retry_model)
     return merged_result
 
 
@@ -261,6 +275,7 @@ def openrouter_review_with_quality_retry(
             config=config,
             line_index=line_index,
             retry_reason=retry_reason,
+            retry_model=str(model_used or ""),
         )
         write_debug_json_artifact_safely(
             config,

@@ -1,0 +1,84 @@
+"""Stable finding-family classification and family-priority ownership.
+
+Preserves the compatibility behavior introduced by historical v15: family
+classification remains available when earlier overlays lack the helper, and
+Kubernetes findings remain optional rather than part of the core must-pass
+family order.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import dcoir_review.risk_sentinel_taxonomy as v4
+import dcoir_review.risk_sentinel_composition as v9
+import dcoir_review.risk_sentinel_state as core
+import dcoir_review.python_k8s_risk_semantics as v11
+import dcoir_review.extended_risk_semantics as v13
+import dcoir_review.finding_integrity_policy as v14
+
+VERSION = "v15"
+FAMILY_ORDER = ("yaml", "powershell", "python", "other", "typescript")
+_ORIGINAL_V13_FAMILY = getattr(v13, "_family", None)
+_ORIGINAL_V4_LINE_KIND = v4._line_kind
+
+
+def _fallback_family(kind: Any) -> str:
+    value = str(kind or "")
+    if value.startswith("yaml_"):
+        return "yaml"
+    if value.startswith("ps_"):
+        return "powershell"
+    if value.startswith("python_"):
+        return "python"
+    if value.startswith("k8s_"):
+        return "kubernetes"
+    if value.startswith("ts_"):
+        return "typescript"
+    return "other"
+
+
+def _family(kind: Any) -> str:
+    upstream = _ORIGINAL_V13_FAMILY
+    if callable(upstream):
+        try:
+            result = str(upstream(kind) or "")
+        except Exception:
+            result = ""
+        if result:
+            return {"ps": "powershell", "k8s": "kubernetes", "ts": "typescript"}.get(result, result)
+    return _fallback_family(kind)
+
+
+
+def _v4_line_kind_with_metadata_priority(path: str, text: str) -> str:
+    suffix = Path(str(path or "").lower()).suffix
+    if suffix in {".yml", ".yaml"} and v4._metadata_shell_line(str(text or "")):
+        return v4.YAML_METADATA_SHELL
+    return _ORIGINAL_V4_LINE_KIND(path, text)
+
+
+
+def _line_kind(path: str, text: str) -> str:
+    return v11._line_kind(path, text)
+
+
+def _semantic_kind(finding: dict[str, Any]) -> str:
+    return v11._semantic_kind(finding)
+
+
+def _patch_family_compat() -> None:
+    v4._line_kind = _v4_line_kind_with_metadata_priority
+    core._line_kind = _line_kind
+    core._semantic_kind = _semantic_kind
+    v9._line_kind = _line_kind
+    v9._semantic_kind = _semantic_kind
+    v13._family = _family
+    v14._family = _family
+    v14.FAMILY_ORDER = FAMILY_ORDER
+    v14.VERSION = VERSION
+
+
+def apply_pareto_context_module(_module: Any) -> None:
+    _patch_family_compat()

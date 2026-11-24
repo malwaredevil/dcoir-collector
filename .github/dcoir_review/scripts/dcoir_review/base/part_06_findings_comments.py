@@ -114,19 +114,6 @@ def default_validation_commands_for_path(path: str) -> list[str]:
     return []
 
 
-def validation_text_for_finding(finding: dict[str, Any]) -> str:
-    path = str(finding.get("path", "")).strip()
-    commands = extract_validation_commands(str(finding.get("validation", "")).strip())
-    defaults = default_validation_commands_for_path(path)
-    combined: list[str] = []
-    seen: set[str] = set()
-    for command in [*commands, *defaults]:
-        if command and command not in seen:
-            combined.append(command)
-            seen.add(command)
-    return "\n".join(combined)
-
-
 def strip_markdown_fence_lines(text: str) -> str:
     lines: list[str] = []
     for line in text.splitlines():
@@ -169,72 +156,6 @@ def clean_fence_language(language: Any, fallback: str = "text") -> str:
 def language_for_fix_guidance(fix_guidance: dict[str, Any], finding: dict[str, Any]) -> str:
     fallback = language_hint_for_path(str(finding.get("path", "") or ""))
     return clean_fence_language(fix_guidance.get("language", ""), fallback)
-
-
-PROSE_GUIDANCE_PREFIXES = (
-    "add ",
-    "avoid ",
-    "change ",
-    "delete ",
-    "do not ",
-    "ensure ",
-    "keep ",
-    "move ",
-    "native ",
-    "replace ",
-    "remove ",
-    "run ",
-    "store ",
-    "use ",
-    "validate ",
-)
-
-
-def guidance_value_looks_like_code(value: str, language: str) -> bool:
-    stripped = value.strip()
-    if not stripped:
-        return False
-    lowered = stripped.lower()
-    code_signals = (
-        "$",
-        "=",
-        "(",
-        ")",
-        "{",
-        "}",
-        "[",
-        "]",
-        ":",
-        ";",
-        "|",
-        "=>",
-        "&&",
-        "||",
-        "import ",
-        "from ",
-        "def ",
-        "class ",
-        "return ",
-        "raise ",
-        "throw ",
-        "if ",
-        "for ",
-        "while ",
-        "on:",
-        "permissions:",
-        "uses:",
-        "run:",
-        "set-",
-        "invoke-",
-        "start-",
-        "convertto-",
-    )
-    has_code_signal = any(signal_text in lowered for signal_text in code_signals)
-    if lowered.startswith(PROSE_GUIDANCE_PREFIXES) and not has_code_signal:
-        return False
-    if language in {"yaml", "json"} and re.search(r"(?m)^\s*[A-Za-z0-9_.-]+\s*:", stripped):
-        return True
-    return has_code_signal
 
 
 def append_language_fence(parts: list[str], language: str, value: str) -> None:

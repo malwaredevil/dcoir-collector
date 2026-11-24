@@ -11,9 +11,14 @@ import importlib
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v13 as v13
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def main() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v14" not in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
     for name in ("_render_integrity_errors", "_rendered_comment_has_integrity_problem", "_family"):
         if hasattr(v13, name):
             delattr(v13, name)
@@ -22,9 +27,9 @@ def main() -> None:
         v13._rendered_comment_has_problem = lambda _rendered, _finding: False
 
     v14 = importlib.import_module("dcoir_review_required_runtime_patch_v14")
-    v15 = importlib.import_module("dcoir_review_required_runtime_patch_v15")
+    finding_family = importlib.import_module("dcoir_review.finding_family")
 
-    v15.apply_pareto_context_module(SimpleNamespace(base=None, hardened=None))
+    finding_family.apply_pareto_context_module(SimpleNamespace(base=None, hardened=None))
 
     assert v14._render_integrity_errors([], {}) == []
     assert v14._family("yaml_pull_request_target") == "yaml"
@@ -40,7 +45,7 @@ def main() -> None:
 
     module = SimpleNamespace(base=None, hardened=None)
     v14.apply_pareto_context_module(module)
-    v15.apply_pareto_context_module(module)
+    finding_family.apply_pareto_context_module(module)
     assert v13._rendered_comment_has_problem is v14._rendered_comment_has_integrity_problem
     assert v13._rendered_comment_has_integrity_problem is v14._rendered_comment_has_integrity_problem
 

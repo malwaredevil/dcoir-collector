@@ -14,6 +14,10 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
         New-Item -ItemType Directory -Force -Path $env:COLLECTOR_VALIDATION_OUTPUT_DIR | Out-Null
+        python project_sources/collector/tools/test_powershell_lexical_mask.py
+        if ($LASTEXITCODE -ne 0) {
+          throw 'PowerShell lexical mask tests failed.'
+        }
         python project_sources/collector/tools/validate_dcoir_collector_runtime_package.py --source-dir . --output-dir $env:COLLECTOR_VALIDATION_OUTPUT_DIR
         if ($LASTEXITCODE -ne 0) {
           throw 'Collector runtime package validation failed.'

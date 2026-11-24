@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from powershell_analyzer_contract import sha256_file
 from powershell_function_reachability_contract import (
     CLASSIFICATIONS,
     DEFAULT_JSON_OUTPUT,
@@ -26,7 +27,6 @@ from powershell_function_reachability_contract import (
     resolve_sources,
     safe_output_path,
     scalar,
-    sha256_file,
     write_json,
 )
 

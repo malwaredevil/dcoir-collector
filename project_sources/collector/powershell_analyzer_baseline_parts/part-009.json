@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "29b7a52ce33da8a72cb3e76bd8fc1f5da65973550beed9630bc63989dc591f3d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 145. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "fa14bb1ca1a4b1024878b7550f873b14acdcb6c496b9aa9eb7063e1c47a19671",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 136. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "fb74a7dd73106abe10de0a190b9a6eff368587a1680f756d94019fbb065f8053",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 140. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "15602361276f0b131e7c3e32b00695c13a1db07a3f52d5c6b17e1118e978f444",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 25. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "512c0819100a2bc703ca73bf5a2dab07585ca41f5274b3b7972d5c1be76e6132",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 22. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "0d0b71bc19007cb0be48069722855493f7353d2ce0482398edde361a018d33ec",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 11. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "7bc9e01fd2ff27164a3a24d856de0b837364b29859d5436156013ee0fa3bd007",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 87. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "91e9c97e66cea29d157c8a552d730d6fbd0be5c3d213960935fd191158a7a474",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 85. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "9d106160678e393f03c1f8cd88a46fa1518d6c18a3f169e96bef333f9c292b8a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 86. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "a3f52526e22cae60983f20ed4b8ee679a8cb00e58aa9440be005ee1543e7f6f4",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 90. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "df8b46cba1a65bdc09beebbf47d9452642068b86e021159166e01808b5c5f97d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 91. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ed405d9dbcf1abf1a5345ebc1d30b6c3ba6a94ab22d4c6bcfdf81d0c1086cb6f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 92. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/run_DCOIR_DefaultNoFlags_Regression.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "a8fa6fa50bc4ac932c2499a9286304c1fcf5cdfbabe528d44a8a2c838abd1818",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 93. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "323a58e17a0959b327d9225ebb5209d240c4454f1e31569f3e8b112a88981b92",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 97. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "4a29c59cd9cee99d13654a1861e4f1f71c636bb99748fbd22792965c2d795d1f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 82. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "7048197fe0b30f428f08cf50becc920be08026ee3fa58a43486bc605ad4f90ff",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 81. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "8e2799b7c3f958e5463b444dc71e48d45d1a4f4e4026f56f9a0185da60570d70",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 96. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "92a895dcbb325286571857a3487b63ef79ece54bedf7e530499e825625019446",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 240. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

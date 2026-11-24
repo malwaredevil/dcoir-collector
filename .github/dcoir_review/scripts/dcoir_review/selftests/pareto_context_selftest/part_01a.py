@@ -31,22 +31,30 @@ class FakeOpenRouterResponse:
 
 
 captured_payloads: list[dict] = []
+captured_timeouts: list[int] = []
 original_urlopen = mod.hardened.urllib.request.urlopen
 
 
 def fake_urlopen(request, timeout=0):
     captured_payloads.append(json.loads(request.data.decode("utf-8")))
+    captured_timeouts.append(timeout)
     return FakeOpenRouterResponse()
 
 
 mod.hardened.urllib.request.urlopen = fake_urlopen
 try:
     parsed_response, served_model, service_tier = mod.hardened.openrouter_request_once("review prompt", schema, config, [], "openrouter/pareto-code")
+    config.openrouter_request_timeout_seconds = 37
+    try:
+        mod.hardened.openrouter_request_once("review prompt", schema, config, [], "openrouter/pareto-code")
+    finally:
+        del config.openrouter_request_timeout_seconds
 finally:
     mod.hardened.urllib.request.urlopen = original_urlopen
 assert parsed_response["findings"] == []
 assert served_model == "served-pareto-model"
 assert service_tier == ""
+assert captured_timeouts == [180, 37]
 assert captured_payloads[0]["plugins"] == [{"id": "pareto-router", "min_coding_score": 0.80}]
 assert captured_payloads[0]["response_format"]["json_schema"]["strict"] is True
 
@@ -97,8 +105,11 @@ anchored_findings, anchor_unanchored = mod.split_findings_with_review_body_fallb
     anchor_sentinels,
 )
 assert anchor_unanchored == []
-assert anchored_findings[0]["line"] == 3
-assert anchored_findings[0]["_reanchored_from_line"] == 4
+# The model supplied line 4, which is already an added changed line. Preserve
+# that exact GitHub-postable evidence boundary even though nearby line 3 has a
+# stronger lexical/sentinel match.
+assert anchored_findings[0]["line"] == 4
+assert anchored_findings[0].get("_reanchored_from_line") is None
 
 yaml_sentinels = mod.detect_risk_sentinels(
     """diff --git a/.github/workflows/probe.yml b/.github/workflows/probe.yml

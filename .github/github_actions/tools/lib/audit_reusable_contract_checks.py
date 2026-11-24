@@ -3,41 +3,39 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from build_workflow_inventory import DEFAULT_JSON_OUTPUT, DEFAULT_MARKDOWN_OUTPUT, build_inventory, check_outputs
 from lib.audit_reusable_contract_helpers import (
     BARE_INPUT_FORWARD_RE,
     COMPOSITE_USING_RE,
     DOUBLE_QUOTED_EXPRESSION_LITERAL_RE,
-    EXPECTED_PRIMARY_WORKFLOW_COUNT,
     WORKFLOW_DIR,
-    collect_mapping_after,
     collect_mapping_values_after,
     declares_workflow_call_github_token_secret,
     find_mapping_headers,
-    iter_action_metadata_files,
-    parse_workflow_call_contract,
     permission_satisfies,
     rel,
     required_permissions_for_text,
 )
-
-
-def check_inventory(repo_root: Path, findings: list[str]) -> None:
-    inventory = build_inventory()
-    findings.extend(check_outputs(inventory, repo_root / DEFAULT_JSON_OUTPUT, repo_root / DEFAULT_MARKDOWN_OUTPUT))
+from lib.workflow_files import iter_action_metadata_files, resolve_action_metadata
+from lib.workflow_uses import iter_workflow_call_bindings, workflow_call_definition
+from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
 
 
 def check_reusable_workflows(repo_root: Path, workflow_files: list[Path], findings: list[str]) -> None:
     primary_workflows = [path for path in workflow_files if not path.name.startswith("reusable-")]
-    if len(primary_workflows) != EXPECTED_PRIMARY_WORKFLOW_COUNT:
+    expected_count = read_contracts().get("existing_workflow_count")
+    if type(expected_count) is not int or expected_count < 0:
         findings.append(
-            f"{WORKFLOW_DIR.as_posix()}:1: expected {EXPECTED_PRIMARY_WORKFLOW_COUNT} primary workflows, "
+            f"{CONTRACT_PATH}:1: existing_workflow_count must be a non-negative integer"
+        )
+    elif len(primary_workflows) != expected_count:
+        findings.append(
+            f"{WORKFLOW_DIR.as_posix()}:1: expected {expected_count} primary workflows, "
             f"found {len(primary_workflows)}"
         )
 
     for workflow_file in workflow_files:
         text = workflow_file.read_text(encoding="utf-8")
-        has_workflow_call = "workflow_call:" in text
+        has_workflow_call = workflow_call_definition(workflow_file)[0]
         is_reusable_name = workflow_file.name.startswith("reusable-")
         workflow_rel = rel(workflow_file, repo_root)
         if has_workflow_call and not is_reusable_name:
@@ -82,7 +80,7 @@ def check_reusable_workflows(repo_root: Path, workflow_files: list[Path], findin
                 f"{workflow_rel}:1: do not pass or reference secrets.GITHUB_TOKEN explicitly in reusable workflow plumbing; "
                 "use github.token inside the called workflow"
             )
-        if declares_workflow_call_github_token_secret(text):
+        if declares_workflow_call_github_token_secret(workflow_file):
             findings.append(
                 f"{workflow_rel}:1: reusable workflow callees must not declare GITHUB_TOKEN as an explicit workflow_call secret"
             )
@@ -98,6 +96,10 @@ def check_local_workflow_calls(
     workflow_refs: list[tuple[Path, int, str]],
     findings: list[str],
 ) -> None:
+    # Preserve per-job order even for multiple calls on one flow-style YAML line.
+    pending: dict[
+        Path, dict[tuple[int, str], list[tuple[frozenset[str], frozenset[str]]]]
+    ] = {}
     for source_path, line_no, ref in workflow_refs:
         target_ref = ref.split("@", 1)[0]
         target = repo_root / target_ref.removeprefix("./")
@@ -107,12 +109,23 @@ def check_local_workflow_calls(
             continue
         if not target.name.startswith("reusable-"):
             findings.append(f"{source_rel}:{line_no}: local workflow call target must be reusable-*.yml: {ref}")
-        if "workflow_call:" not in target.read_text(encoding="utf-8"):
+        has_call, declared_inputs, declared_call_keys = workflow_call_definition(target)
+        if not has_call:
             findings.append(f"{source_rel}:{line_no}: local workflow call target is missing workflow_call: {ref}")
-        declared_inputs, declared_call_keys = parse_workflow_call_contract(target)
-        lines = source_path.read_text(encoding="utf-8").splitlines()
-        passed_inputs = collect_mapping_after(lines, line_no - 1, "with")
-        passed_call_keys = collect_mapping_after(lines, line_no - 1, "secrets")
+        if source_path not in pending:
+            by_call: dict[
+                tuple[int, str], list[tuple[frozenset[str], frozenset[str]]]
+            ] = {}
+            for call_line, call_ref, inputs, secrets in iter_workflow_call_bindings(source_path):
+                by_call.setdefault((call_line, call_ref), []).append((inputs, secrets))
+            pending[source_path] = by_call
+        matches = pending[source_path].get((line_no, ref), [])
+        if not matches:
+            findings.append(
+                f"{source_rel}:{line_no}: local reusable workflow call must be job-level: {ref}"
+            )
+            continue
+        passed_inputs, passed_call_keys = matches.pop(0)
         for input_name in sorted(passed_inputs - declared_inputs):
             findings.append(f"{source_rel}:{line_no}: caller passes undeclared reusable-workflow input {input_name}: {ref}")
         for call_key in sorted(passed_call_keys - declared_call_keys):
@@ -128,9 +141,7 @@ def check_local_action_calls(
         target_ref = ref.split("@", 1)[0]
         target = repo_root / target_ref.removeprefix("./")
         source_rel = rel(source_path, repo_root)
-        action_file = target / "action.yml"
-        action_file_yaml = target / "action.yaml"
-        if not action_file.is_file() and not action_file_yaml.is_file():
+        if resolve_action_metadata(target) is None:
             findings.append(f"{source_rel}:{line_no}: local action target has no action.yml/action.yaml: {ref}")
 
 

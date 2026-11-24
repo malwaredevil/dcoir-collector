@@ -106,7 +106,9 @@ def test_render_hook_replaces_wrong_validation() -> None:
     hardened.build_review_body_with_unanchored = lambda *_args, **_kwargs: "Base review body"
     module = SimpleNamespace(base=FakeBase(), hardened=hardened)
     v14.apply_pareto_context_module(module)
-    rendered = module.base.build_inline_comment(mixed_findings()[0], "openrouter/pareto", Config())
+    finding = mixed_findings()[0]
+    item = v14.v13._integrity_finding(finding, v14.v13._postable_key(finding), force_template=True)
+    rendered = v14.v13._sanitize_rendered_inline_comment(module.base.build_inline_comment(item, "openrouter/pareto", Config()), item)
     assert "Reviewed with " not in rendered
     assert "GITHUB_TOKEN" in rendered
     assert "github.event.pull_request.body" in rendered
@@ -141,7 +143,8 @@ def test_render_hook_collapses_duplicate_validation_sections() -> None:
         "_anchored_line_text": "Invoke-Expression $UserCommand",
         "_risk_sentinel_key": [POWERSHELL, 15, "ps_dynamic_exec"],
     }
-    rendered = module.base.build_inline_comment(finding, "openrouter/pareto", Config())
+    item = v14.v13._integrity_finding(finding, v14.v13._postable_key(finding), force_template=True)
+    rendered = v14.v13._sanitize_rendered_inline_comment(module.base.build_inline_comment(item, "openrouter/pareto", Config()), item)
     assert rendered.lower().count("validation") == 1
     assert rendered.count("PSParser") == 1
 
@@ -172,7 +175,8 @@ def test_render_hook_strips_unsafe_native_suggestion() -> None:
         "_anchored_line_text": "    return pickle.loads(raw)",
         "_risk_sentinel_key": [PYTHON, 12, "python_pickle_load"],
     }
-    rendered = module.base.build_inline_comment(finding, "openrouter/pareto", Config())
+    item = v14.v13._integrity_finding(finding, v14.v13._postable_key(finding), force_template=True)
+    rendered = v14.v13._sanitize_rendered_inline_comment(module.base.build_inline_comment(item, "openrouter/pareto", Config()), item)
     assert "```suggestion" not in rendered
     assert rendered.lower().count("validation") == 1
 

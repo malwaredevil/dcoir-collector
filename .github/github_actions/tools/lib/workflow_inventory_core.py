@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import json
 import re
+from functools import partial
 from pathlib import Path
 from typing import Any
+
+from .workflow_files import iter_action_metadata_files
+from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 CONTRACT_PATH = Path(".github/github_actions/workflow_modularization_contracts.json")
@@ -20,15 +24,9 @@ def read_contracts() -> dict[str, Any]:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
-def iter_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        path for path in WORKFLOW_DIR.iterdir()
-        if path.is_file()
-        and path.suffix.lower() in {".yml", ".yaml"}
-        and not path.name.startswith("reusable-")
-    )
+iter_workflow_files = partial(
+    _shared_iter_workflow_files, WORKFLOW_DIR, include_reusable=False
+)
 
 
 def top_level_key(line: str) -> str | None:
@@ -227,13 +225,15 @@ def build_inventory() -> dict[str, Any]:
         entry["file"]: entry
         for entry in contracts.get("workflow_contracts", [])
     }
-    workflows = [workflow_entry(path, contract_by_file) for path in iter_workflow_files()]
-    reusable_workflows = sorted(WORKFLOW_DIR.glob("reusable-*.yml")) if WORKFLOW_DIR.exists() else []
-    composite_actions = sorted(Path(".github/actions").glob("*/action.yml"))
-    action_call_sources = iter_workflow_files() + reusable_workflows + composite_actions
+    all_workflow_files = _shared_iter_workflow_files(WORKFLOW_DIR)
+    primary_workflows = [path for path in all_workflow_files if not path.name.startswith("reusable-")]
+    reusable_workflows = [path for path in all_workflow_files if path.name.startswith("reusable-")]
+    workflows = [workflow_entry(path, contract_by_file) for path in primary_workflows]
+    composite_actions = iter_action_metadata_files(Path("."), top_level_only=True)
+    action_call_sources = all_workflow_files + composite_actions
     local_reusable_calls = sum(
         1
-        for path in iter_workflow_files() + reusable_workflows
+        for path in all_workflow_files
         for line in path.read_text(encoding="utf-8").splitlines()
         if "uses: ./.github/workflows/reusable-" in line
     )

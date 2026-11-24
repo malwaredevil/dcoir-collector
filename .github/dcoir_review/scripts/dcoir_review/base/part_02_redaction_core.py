@@ -134,6 +134,8 @@ def redact_header_credential(match: re.Match[str]) -> str:
         return match.group(0)
     scheme = match.group("scheme")
     tail = match.string[match.end():].lstrip()
+    if scheme is None and re.fullmatch(r"[rubf]{1,2}", value, re.IGNORECASE) and tail[:1] in {'"', "'"}:
+        return match.group(0)
     if scheme is None and value.lower() in {"bearer", "basic", "token"}:
         if tail[:1] in {'"', "'"}:
             return match.group(0)

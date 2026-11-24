@@ -6,6 +6,8 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,11 +39,23 @@ def psscriptanalyzer_script() -> str:
 $ErrorActionPreference = 'Stop'
 $requestJson = [Console]::In.ReadToEnd()
 $request = $requestJson | ConvertFrom-Json
-Import-Module PSScriptAnalyzer -ErrorAction Stop
+if ($env:DCOIR_PSSCRIPTANALYZER_VERSION) {
+  Import-Module PSScriptAnalyzer -RequiredVersion $env:DCOIR_PSSCRIPTANALYZER_VERSION -ErrorAction Stop
+} else {
+  Import-Module PSScriptAnalyzer -ErrorAction Stop
+}
 $module = Get-Module PSScriptAnalyzer
-$rawFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+# Preserve the legacy all-built-in diagnostic coverage, including Error findings.
+# Add the six governed policy rules without emitting duplicate findings.
+[Console]::Error.WriteLine('DCOIR_ANALYZER_STAGE=legacy')
+$legacyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -ErrorAction Stop)
+[Console]::Error.WriteLine('DCOIR_ANALYZER_STAGE=policy')
+$policyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+$seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $findings = @(
-  foreach ($finding in $rawFindings) {
+  foreach ($finding in @($legacyFindings) + @($policyFindings)) {
+    $key = @([string]$finding.ScriptPath, [string]$finding.Line, [string]$finding.Column, [string]$finding.RuleName, [string]$finding.Severity, [string]$finding.Message) -join [char]0
+    if (-not $seen.Add($key)) { continue }
     $recommendedFix = ''
     if ($finding.PSObject.Properties.Name -contains 'SuggestedCorrections' -and $finding.SuggestedCorrections) {
       $recommendedFix = ($finding.SuggestedCorrections | Select-Object -First 1 | ForEach-Object { $_.Description }) -join '; '
@@ -85,26 +99,72 @@ def run_analyzer_command(
     request: dict[str, Any],
     timeout_seconds: int,
 ) -> dict[str, Any]:
-    try:
-        completed = subprocess.run(
-            command,
-            input=json.dumps(request),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise AnalyzerContractError(
-            f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']}"
-        ) from exc
-    except OSError as exc:
-        raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
+    # The built-in analyzer can transiently hang or crash. Only its trusted
+    # PowerShell command gets one fresh-process timeout retry; the existing
+    # null-reference retry limit remains at three total attempts. All other
+    # failures and incomplete scans fail closed.
+    attempts = 3 if command_kind == "psscriptanalyzer_pwsh" else 1
+    timeout_retries_used = 0
+    for attempt in range(1, attempts + 1):
+        started = time.monotonic()
+        try:
+            completed = subprocess.run(
+                command,
+                input=json.dumps(request),
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
+        except subprocess.TimeoutExpired as exc:
+            elapsed = time.monotonic() - started
+            partial_stderr = exc.stderr or b""
+            if isinstance(partial_stderr, bytes):
+                partial_stderr = partial_stderr.decode("utf-8", errors="replace")
+            stage = "unknown"
+            for line in partial_stderr.splitlines():
+                marker = line.strip()
+                if marker in {"DCOIR_ANALYZER_STAGE=legacy", "DCOIR_ANALYZER_STAGE=policy"}:
+                    stage = marker.partition("=")[2]
+            detail = (
+                f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']} "
+                f"(attempt {attempt}/{attempts}, elapsed {elapsed:.1f}s, stage={stage})"
+            )
+            if (
+                command_kind == "psscriptanalyzer_pwsh"
+                and timeout_retries_used == 0
+                and attempt < attempts
+            ):
+                timeout_retries_used += 1
+                print(f"{detail}; retrying once in a fresh PowerShell process", file=sys.stderr)
+                continue
+            raise AnalyzerContractError(detail) from exc
+        except OSError as exc:
+            raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
 
-    if completed.returncode != 0:
+        if completed.returncode == 0:
+            if attempt > 1:
+                elapsed = time.monotonic() - started
+                print(
+                    f"PSScriptAnalyzer recovered for {request['target']['path']} "
+                    f"on attempt {attempt}/{attempts} in {elapsed:.1f}s",
+                    file=sys.stderr,
+                )
+            break
         stderr = completed.stderr.strip()[-2000:]
+        if (
+            command_kind == "psscriptanalyzer_pwsh"
+            and "Object reference not set to an instance of an object" in stderr
+            and attempt < attempts
+        ):
+            print(
+                f"PSScriptAnalyzer transient null-reference while scanning "
+                f"{request['target']['path']}; retry {attempt + 1}/{attempts}",
+                file=sys.stderr,
+            )
+            continue
         raise AnalyzerContractError(
             f"analyzer crash for {request['target']['path']} with exit {completed.returncode}: {stderr}"
         )

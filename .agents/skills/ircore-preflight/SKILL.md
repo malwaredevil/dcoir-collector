@@ -17,7 +17,7 @@ Its job is to:
 - identify the most likely failure pattern
 - choose the safest execution lane
 - identify GitHub work-item receipt requirements
-- identify whether Prog/Adva and Codi gates apply
+- identify whether Prog/Adva discipline applies
 - identify whether an internal review request (`/dcoir-review`, `/or-review`, or `/openrouter-review`) would require operator approval of the exact proposed command before every invocation or rerun
 - identify whether an external `@codex` PR comment would require operator approval of exact proposed text before posting
 - identify whether a GitHub Copilot review request is operator-controlled
@@ -132,7 +132,7 @@ Before creating anything new, check for:
 
 ## Internal Review Gate Awareness
 
-Resolve the active runtime adapter in `AGENTS.md` before applying review gates. When the Codex local-session operator adapter applies, do not require named Prog, Adva, or Codi personas/subagents, `/dcoir-review`, or an external self-invocation comment. Require Codex self-review, validation proportionate to risk, source/GitHub readback, and every safety boundary that the adapter retains. Do not apply this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
+Resolve the active runtime adapter in `AGENTS.md` before applying review gates. When the Codex local-session operator adapter applies, do not require named Prog or Adva personas/subagents, `/dcoir-review`, or an external self-invocation comment. Require Codex self-review, validation proportionate to risk, source/GitHub readback, and every safety boundary that the adapter retains. Do not apply this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
 
 For non-trivial code, workflow, governed-source, instruction-surface, Supabase guidance, PR-readiness, or issue-readiness work:
 - Prog implements or fixes.
@@ -142,11 +142,11 @@ For non-trivial code, workflow, governed-source, instruction-surface, Supabase g
 - If either pass is waived or not applicable, state why and preserve the evidence gap when governed readiness depends on it.
 
 For PR-related code, workflow, or governed-source changes:
-- Codi reviews PR-related code changes before the external `@codex` PR comment is posted unless the operator explicitly waives Codi for the current task.
-- Valid Codi findings must be fixed and re-reviewed until Codi approves, the operator explicitly waives Codi for the current task, or a future durable instruction change removes or changes the Codi requirement.
-- Codi review comments related to code review in PRs or issues must have a raw comment body whose first non-blank line starts with `CODI FINDS`, then follow the closest practical `@codex` review/finding format used in this repository.
-- Codi approval does not replace Prog, Adva, external `@codex`, GitHub Actions, live GitHub readback, or Supabase receipts.
-- After Prog/Adva and Codi are clear for a governed PR, the OpenRouter internal review command (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review-assist gate before any external `@codex` review request, when the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane, local validation has passed, and the operator-approved lane is at that step. Sequencing does not authorize execution. Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current/future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, branch-only existence is not enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. After an approved invocation, read back the command comment id, eyes reaction lifecycle, workflow/run state, progress/status comment, PR review output, and finding disposition.
+- Adva is the single internal hostile/adversarial review pass after Prog implementation/fix work.
+- Adva must generate novel hostile variants, boundary and malformed-input cases, repair-mechanism attacks, cross-file/caller checks, and opposite-polarity/safe controls when relevant rather than merely replaying supplied examples.
+- Valid Adva findings must be fixed and re-reviewed until Adva approves, the operator explicitly waives Adva for the current task, or the pass is not applicable with a stated reason.
+- Adva is internal evidence only and does not replace genuinely independent review, GitHub Actions, live GitHub readback, or Supabase receipts.
+- After Prog/Adva are clear for a governed PR, the OpenRouter internal review command (`/or-review`, `/dcoir-review`, or `/openrouter-review`) may be the next review-assist gate before any external `@codex` review request, when the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane, local validation has passed, and the operator-approved lane is at that step. Sequencing does not authorize execution. Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current/future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit approval. For PRs that add or change the OpenRouter `issue_comment` workflow/script, branch-only existence is not enough; record the bootstrap gap until default-branch landing or an approved equivalent live-test lane can exercise the changed code. After an approved invocation, read back the command comment id, eyes reaction lifecycle, workflow/run state, progress/status comment, PR review output, and finding disposition.
 - If a DCOIR Review finding is fixed and the gate says to rerun, stop before posting the rerun and obtain fresh approval for the exact proposed rerun command.
 - Before posting or confirming any PR comment that invokes the literal `@codex` handle and asks Codex to review, act, fix, patch, implement, update, or otherwise perform PR-related work, draft the exact comment text, show it to the operator, and receive explicit operator approval in the current session. No approval means no post.
 - GitHub Copilot review requests are operator-controlled. Do not request a Copilot review unless the operator explicitly approves or manually triggers it.
@@ -175,7 +175,7 @@ Check these first:
 4. mutation risk:
    - change attempted before validation/readback rule was identified
    - GitHub issue/PR receipt gateways skipped for governed work
-   - Prog/Adva, Codi, `/dcoir-review` exact-request approval, GitHub Copilot operator control, external `@codex`, or exact-text operator approval gate skipped when required
+   - Prog/Adva, `/dcoir-review` exact-request approval, GitHub Copilot operator control, external `@codex`, or exact-text operator approval gate skipped when required
 
 Do not jump to exotic explanations first.
 
@@ -191,7 +191,7 @@ When used, return a compact preflight with:
 6. likely failure pattern
 7. required validation/readback
 8. GitHub work-item receipt requirement, if any
-9. Prog/Adva internal review requirement, Codi requirement, DCOIR Review exact-request approval requirement, GitHub Copilot operator-control status, and external `@codex` exact-text approval requirement, if applicable
+9. Prog/Adva internal review requirement, DCOIR Review exact-request approval requirement, GitHub Copilot operator-control status, and external `@codex` exact-text approval requirement, if applicable
 10. whether continuity capture is needed
 11. one best next move
 
@@ -203,7 +203,6 @@ When used, return a compact preflight with:
 - do not claim readiness or completion without readback evidence
 - do not skip GitHub work-item receipt gateways for governed issue/PR work
 - do not treat Prog or Adva as operator-triggered only for non-trivial governed work unless an explicitly scoped runtime adapter in `AGENTS.md` applies
-- do not skip Codi review before the external `@codex` PR request unless the operator explicitly waived Codi for the current task or the Codex local-session operator adapter applies
 - do not skip OpenRouter internal review gate lookup when it applies, but do not post or confirm any `/dcoir-review`, `/or-review`, or `/openrouter-review` command unless the operator approved the exact proposed command in the current session; every variant and every rerun requires its own approval; for OpenRouter `issue_comment` workflow/script changes, do not treat branch-only workflow existence as live-test availability
 - do not request GitHub Copilot review unless the operator explicitly approves or manually triggers it
 - do not post or confirm any external `@codex` PR review or action comment unless the operator approved the exact proposed comment text in the current session

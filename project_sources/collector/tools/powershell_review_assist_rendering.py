@@ -14,6 +14,11 @@ from powershell_review_assist_common import (
     scalar,
 )
 
+WORKFLOW_RETENTION_SCOPE = (
+    "workflow-generated report artifacts uploaded by the caller workflow; "
+    "retention is configured by the caller upload-artifact step, not by #268"
+)
+
 def artifact_contract() -> dict[str, Any]:
     return {
         "issue": ISSUE_NUMBER,
@@ -188,6 +193,8 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(["", "## Artifact Contract", ""])
     lines.append(f"- JSON: `{report['artifact_contract']['local_artifacts']['json']}`")
     lines.append(f"- Markdown: `{report['artifact_contract']['local_artifacts']['markdown']}`")
+    if report["artifact_contract"]["workflow_behavior"] == "caller_uploaded_artifact":
+        lines.append("- Workflow behavior: `caller_uploaded_artifact`")
     lines.append(f"- Retention scope: {report['artifact_contract']['retention_scope']}")
     lines.extend(["", "## Validation", ""])
     if validation["errors"]:
@@ -206,6 +213,8 @@ def validate_markdown_parity(report: dict[str, Any], markdown: str) -> list[str]
         report["artifact_contract"]["local_artifacts"]["json"],
         "No workflow YAML was changed by #268.",
     ]
+    if report["artifact_contract"]["workflow_behavior"] == "caller_uploaded_artifact":
+        required_fragments.append("- Workflow behavior: `caller_uploaded_artifact`")
     required_fragments.extend(entry["path"] for entry in report["source_reports"])
     for finding in report["findings"]:
         required_fragments.append(finding["path"])

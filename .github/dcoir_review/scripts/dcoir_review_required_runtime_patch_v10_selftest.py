@@ -5,7 +5,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v10 as v10
+import openrouter_pr_review_pareto_context as pareto
 
 
 WORKFLOW = ".github/workflows/dcoir-review-v10-overflow-probe.yml"
@@ -148,12 +150,42 @@ def test_https_shell_pipe_does_not_say_plain_http() -> None:
     assert "network-fetched" in finding["body"]
 
 
+
+def test_v10_is_helper_only_beneath_v11() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v10" not in names, names
+    assert "dcoir_review_required_runtime_patch_v11" not in names, names
+    assert "dcoir_review_required_runtime_patch_v12" not in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
+    assert callable(v10._patch_yaml_extra_sentinels)
+    assert callable(v10._line_kind)
+
+    DcoirReviewEntrypoint().apply_runtime_patches(pareto)
+    diff = (
+        f"diff --git a/{WORKFLOW} b/{WORKFLOW}\n"
+        f"--- a/{WORKFLOW}\n"
+        f"+++ b/{WORKFLOW}\n"
+        "@@ -0,0 +17,4 @@\n"
+        '+        run: bash -lc "${{ github.event.pull_request.labels[0].name }}"\n'
+        '+        run: echo safe\n'
+        '+        run: curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.pull_request.body }}"\n'
+        '+        # run: curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.pull_request.body }}"\n'
+    )
+    sentinels = pareto.detect_risk_sentinels(diff, 12)
+    keys = {v10.core._sentinel_key(item) for item in sentinels}
+    assert (WORKFLOW, 17, v10.v4.YAML_METADATA_SHELL) in keys, keys
+    assert (WORKFLOW, 19, v10.YAML_TOKEN_TO_PR_URL) in keys, keys
+    assert len([key for key in keys if key[2] == v10.YAML_TOKEN_TO_PR_URL]) == 1, keys
+
+
 def main() -> None:
     test_line_kind_extensions()
     test_yaml_extra_detector_adds_label_and_token_sentinels()
     test_detector_wrapper_removes_upstream_anchor_cap()
     test_required_overflow_posts_best_twelve_and_reports_omissions()
     test_https_shell_pipe_does_not_say_plain_http()
+    test_v10_is_helper_only_beneath_v11()
     print("dcoir_review_required_runtime_patch_v10_selftest passed")
 
 

@@ -181,7 +181,10 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Ris
             if pattern.search(changed_line.text):
                 append_risk_sentinel(sentinels, seen, changed_line, label, detail)
                 break
-    return select_risk_sentinels(sentinels, max_anchors)
+    from dcoir_review import precision_guard
+
+    filtered = precision_guard.filter_language_scoped_sentinels(sentinels)
+    return select_risk_sentinels(filtered, max_anchors)
 
 
 def risk_sentinel_digest(sentinels: list[RiskSentinel]) -> str:

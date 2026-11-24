@@ -79,7 +79,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--json-output", default=DEFAULT_JSON_OUTPUT.as_posix(), help="Output JSON report path")
     parser.add_argument("--markdown-output", default=DEFAULT_MARKDOWN_OUTPUT.as_posix(), help="Output Markdown report path")
     parser.add_argument("--no-write", action="store_true", help="Build the report without writing output files")
-    return parser.parse_args(argv)
+    parser.add_argument("--artifact-behavior", choices=("none", "caller_uploaded_artifact"), default="none", help="Report artifact metadata mode")
+    parser.add_argument("--retention-scope", default=None, help="Optional caller-owned workflow artifact retention description")
+    args = parser.parse_args(argv)
+    retention = args.retention_scope
+    if args.artifact_behavior == "none" and retention is not None:
+        parser.error("--retention-scope requires --artifact-behavior caller_uploaded_artifact")
+    if retention is not None and (not retention.strip() or any(ord(char) < 32 or 127 <= ord(char) < 160 for char in retention)):
+        parser.error("--retention-scope must be nonblank without control characters")
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:

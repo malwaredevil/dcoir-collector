@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue550-pr553-dispatch-codeql-exact-head-002",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue550-pr553-dispatch-codeql-exact-head-002",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34939577860",
+  "github_run_attempt": "1",
+  "github_sha": "bf79c910e6933b9c5d3abfd8e6931d12d20f4c29",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-15T07:01:18Z"
+}

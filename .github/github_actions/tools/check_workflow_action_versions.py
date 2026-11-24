@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import re
 import sys
+from functools import partial
 from pathlib import Path
 
+from lib.workflow_files import iter_action_metadata_files
+from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
+from lib.workflow_uses import iter_uses_references
+
 WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
 
 # Minimum majors selected to avoid GitHub Actions Node.js 20 deprecation warnings
 # and catch unsupported action tags for the actions used in this repository.
@@ -37,23 +41,14 @@ MAXIMUM_ACTION_MAJORS = {
     "github/codeql-action/upload-sarif": 4,
 }
 
-USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 MAJOR_TAG_RE = re.compile(r"^v(\d+)(?:\.|$)")
 
 
-def iter_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        p for p in WORKFLOW_DIR.iterdir()
-        if p.is_file() and p.suffix.lower() in {".yml", ".yaml"}
-    )
+iter_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
 
 
 def iter_composite_action_files() -> list[Path]:
-    if not ACTION_DIR.exists():
-        return []
-    return sorted(ACTION_DIR.glob("*/action.y*ml"))
+    return iter_action_metadata_files(Path("."), top_level_only=True)
 
 
 def iter_audited_files() -> list[Path]:
@@ -62,11 +57,7 @@ def iter_audited_files() -> list[Path]:
 
 def check_file(path: Path) -> list[str]:
     findings: list[str] = []
-    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        match = USES_RE.match(line)
-        if not match:
-            continue
-        ref = match.group(1).strip().strip('"\'')
+    for line_no, ref in iter_uses_references(path):
         if ref.startswith("./"):
             continue
         if "@" not in ref:

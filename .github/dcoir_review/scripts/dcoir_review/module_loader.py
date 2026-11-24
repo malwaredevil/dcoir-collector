@@ -8,12 +8,15 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     'base': (
         'base/part_01_core_config_github.py',
         'base/part_01a_progress_diff.py',
+        'base/part_01b_review_publication.py',
         'base/part_02_redaction_core.py',
         'base/part_03_redaction_shell.py',
         'base/part_03a_redaction_command_shell.py',
         'base/part_04_debug_artifacts.py',
         'base/part_05_prompt_provider.py',
         'base/part_06_findings_comments.py',
+        'base/part_06a_finding_validation.py',
+        'base/part_06b_guidance_code.py',
         'base/part_07_main.py',
     ),
     'hardened': (
@@ -24,19 +27,34 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'hardened/part_03a_fallback_prompt.py',
         'hardened/part_04_quality_provider.py',
         'hardened/part_04a_provider.py',
+        'hardened/part_04b_provider_request.py',
         'hardened/part_05_debug_and_merge.py',
         'hardened/part_06_normalize_select.py',
         'hardened/part_07_review_body_main.py',
     ),
     'pareto_context': (
         'pareto_context/part_01_config_payload.py',
+        'pareto_context/part_01a_python_call_helpers.py',
+        'pareto_context/part_01b_python_binding_helpers.py',
         'pareto_context/part_02_python_path_helpers.py',
+        'pareto_context/part_02a_python_urlopen_helpers.py',
+        'pareto_context/part_02b_python_write_helpers.py',
         'pareto_context/part_03_python_diff_scope.py',
+        'pareto_context/part_03c_file_write_helpers.py',
+        'pareto_context/part_03d_file_write_scan_helpers.py',
         'pareto_context/part_04_sentinels_modes_context.py',
         'pareto_context/part_04a_ranking_context.py',
+        'pareto_context/part_04b_sentinel_dispatch.py',
+        'pareto_context/part_04b1_python_urlopen_scope.py',
+        'pareto_context/part_04b2_python_sentinel_helpers.py',
+        'pareto_context/part_04c_review_context.py',
         'pareto_context/part_05_ranking_per_file_review.py',
         'pareto_context/part_05a_hybrid_review.py',
         'pareto_context/part_06_fix_synthesis.py',
+        'pareto_context/part_07a0_python_scope_bindings.py',
+        'pareto_context/part_07a1_python_scope_state_helpers.py',
+        'pareto_context/part_07a2_python_scope_restoration.py',
+        'pareto_context/part_07a_python_scope_context.py',
         'pareto_context/part_07_deep_context_prompt.py',
         'pareto_context/part_08_review_body_main.py',
         'pareto_context/part_08a_review_body_main.py',
@@ -59,9 +77,16 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'selftests/pareto_context_selftest/part_01a.py',
         'selftests/pareto_context_selftest/part_02.py',
         'selftests/pareto_context_selftest/part_03.py',
+        'selftests/pareto_context_selftest/part_03a.py',
+        'selftests/pareto_context_selftest/part_03b_fixtures.py',
+        'selftests/pareto_context_selftest/part_03c_os_open_regressions.py',
         'selftests/pareto_context_selftest/part_04.py',
         'selftests/pareto_context_selftest/part_04a.py',
+        'selftests/pareto_context_selftest/part_04b.py',
+        'selftests/pareto_context_selftest/part_04c_scope_regressions.py',
+        'selftests/pareto_context_selftest/part_04d_scope_statement_regressions.py',
         'selftests/pareto_context_selftest/part_05.py',
+        'selftests/pareto_context_selftest/part_05a.py',
     ),
     'dcoir_review_required_runtime_patch_v14_selftest': (
         'selftests/dcoir_review_required_runtime_patch_v14_selftest/part_01.py',
@@ -94,95 +119,83 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'patches/dcoir_review_required_runtime_patches/part_02.py',
         'patches/dcoir_review_required_runtime_patches/part_02a.py',
     ),
-    'dcoir_review_required_runtime_patch_v2': (
-        'patches/dcoir_review_required_runtime_patch_v2/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v2/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v2/part_02.py',
+    'dcoir_review.required_coverage_primitives': (
+        'required_coverage_primitives_parts/part_01.py',
+        'required_coverage_primitives_parts/part_01a.py',
+        'required_coverage_primitives_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v3': (
-        'patches/dcoir_review_required_runtime_patch_v3/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v3/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v3/part_02.py',
+    'dcoir_review.risk_sentinel_identity': (
+        'risk_sentinel_identity_parts/part_01.py',
+        'risk_sentinel_identity_parts/part_01a.py',
+        'risk_sentinel_identity_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v4_apply': (
-        'patches/dcoir_review_required_runtime_patch_v4_apply/part_01.py',
+    'dcoir_review.risk_sentinel_policy': (
+        'risk_sentinel_policy_parts/part_01.py',
+        'risk_sentinel_policy_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v5_apply': (
-        'patches/dcoir_review_required_runtime_patch_v5_apply/part_01.py',
+    'dcoir_review.prompt_review_policy': (
+        'prompt_review_policy_parts/part_01.py',
+        'prompt_review_policy_parts/part_01a.py',
+        'prompt_review_policy_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v5': (
-        'patches/dcoir_review_required_runtime_patch_v5/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v5/part_02.py',
+    'dcoir_review.required_selection_policy': (
+        'required_selection_policy_parts/part_01.py',
+        'required_selection_policy_parts/part_01a.py',
     ),
-    'dcoir_review_required_runtime_patch_v6': (
-        'patches/dcoir_review_required_runtime_patch_v6/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v6/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v6/part_02.py',
+    'dcoir_review.selection_pressure_policy': (
+        'selection_pressure_policy_parts/part_01.py',
+        'selection_pressure_policy_parts/part_01a.py',
     ),
-    'dcoir_review_required_runtime_patch_v7': (
-        'patches/dcoir_review_required_runtime_patch_v7/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v7/part_01a.py',
+    'dcoir_review.risk_sentinel_composition': (
+        'risk_sentinel_composition_parts/part_01.py',
     ),
-    'dcoir_review_required_runtime_patch_v8': (
-        'patches/dcoir_review_required_runtime_patch_v8/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v8/part_01a.py',
+    'dcoir_review.risk_sentinel_state': (
+        'risk_sentinel_state_parts/part_01.py',
+        'risk_sentinel_state_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v9': (
-        'patches/dcoir_review_required_runtime_patch_v9/part_01.py',
+    'dcoir_review.risk_sentinel_selection_support': (
+        'risk_sentinel_selection_support_parts/part_01.py',
+        'risk_sentinel_selection_support_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v9_core': (
-        'patches/dcoir_review_required_runtime_patch_v9_core/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v9_core/part_02.py',
+    'dcoir_review.workflow_risk_semantics': (
+        'workflow_risk_semantics_parts/part_01.py',
+        'workflow_risk_semantics_parts/part_01a.py',
+        'workflow_risk_semantics_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v9_selection': (
-        'patches/dcoir_review_required_runtime_patch_v9_selection/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v9_selection/part_02.py',
+    'dcoir_review.python_k8s_risk_semantics': (
+        'python_k8s_risk_semantics_parts/part_01.py',
+        'python_k8s_risk_semantics_parts/part_01a.py',
+        'python_k8s_risk_semantics_parts/part_02.py',
+        'python_k8s_risk_semantics_parts/part_02a.py',
     ),
-    'dcoir_review_required_runtime_patch_v10': (
-        'patches/dcoir_review_required_runtime_patch_v10/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v10/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v10/part_02.py',
+    'dcoir_review.required_selection_semantics': (
+        'required_selection_semantics_parts/part_01.py',
+        'required_selection_semantics_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v11': (
-        'patches/dcoir_review_required_runtime_patch_v11/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v11/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v11/part_02.py',
-        'patches/dcoir_review_required_runtime_patch_v11/part_02a.py',
+    'dcoir_review.extended_risk_semantics': (
+        'extended_risk_semantics_parts/part_01.py',
+        'extended_risk_semantics_parts/part_01a.py',
+        'extended_risk_semantics_parts/part_02.py',
+        'extended_risk_semantics_parts/part_02a.py',
     ),
-    'dcoir_review_required_runtime_patch_v12': (
-        'patches/dcoir_review_required_runtime_patch_v12/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v12/part_02.py',
+    'dcoir_review.finding_integrity_policy': (
+        'finding_integrity_policy_parts/part_01.py',
+        'finding_integrity_policy_parts/part_01a.py',
+        'finding_integrity_policy_parts/part_02.py',
     ),
-    'dcoir_review_required_runtime_patch_v13': (
-        'patches/dcoir_review_required_runtime_patch_v13/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v13/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v13/part_02.py',
-        'patches/dcoir_review_required_runtime_patch_v13/part_02a.py',
+    'dcoir_review.risk_sentinel_primitives': (
+        'risk_sentinel_primitives_parts/part_01.py',
+        'risk_sentinel_primitives_parts/part_01a.py',
+        'risk_sentinel_primitives_parts/part_01b.py',
+        'risk_sentinel_primitives_parts/part_01b1.py',
+        'risk_sentinel_primitives_parts/part_01c.py',
+        'risk_sentinel_primitives_parts/part_02.py',
+        'risk_sentinel_primitives_parts/part_02a.py',
     ),
-    'dcoir_review_required_runtime_patch_v15': (
-        'patches/dcoir_review_required_runtime_patch_v15/part_01.py',
-    ),
-    'dcoir_review_required_runtime_patch_v14': (
-        'patches/dcoir_review_required_runtime_patch_v14/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v14/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v14/part_02.py',
-    ),
-    'dcoir_review_required_runtime_patch_v16': (
-        'patches/dcoir_review_required_runtime_patch_v16/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v16/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v16/part_02.py',
-    ),
-    'dcoir_review_required_runtime_patch_v17': (
-        'patches/dcoir_review_required_runtime_patch_v17/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v17/part_02.py',
-    ),
-    'dcoir_review_required_runtime_patch_v18': (
-        'patches/dcoir_review_required_runtime_patch_v18/part_01.py',
-    ),
-    'dcoir_review_required_runtime_patch_v4': (
-        'patches/dcoir_review_required_runtime_patch_v4/part_01.py',
-        'patches/dcoir_review_required_runtime_patch_v4/part_01a.py',
-        'patches/dcoir_review_required_runtime_patch_v4/part_02.py',
+    'dcoir_review.risk_sentinel_taxonomy': (
+        'risk_sentinel_taxonomy_parts/part_01.py',
+        'risk_sentinel_taxonomy_parts/part_01a.py',
+        'risk_sentinel_taxonomy_parts/part_02.py',
     ),
 }
 

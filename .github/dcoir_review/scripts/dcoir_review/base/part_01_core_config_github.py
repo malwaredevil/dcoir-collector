@@ -261,7 +261,16 @@ class GitHubClient:
         payload: dict[str, Any] = {"event": event, "comments": comments, "commit_id": commit_id}
         if body.strip():
             payload["body"] = body
-        return self.request("POST", f"/repos/{self.repo}/pulls/{number}/reviews", payload)
+        path = f"/repos/{self.repo}/pulls/{number}/reviews"
+        try:
+            return self.request("POST", path, payload)
+        except RuntimeError as exc:
+            # Preserve findings in the body when GitHub rejects their inline anchors.
+            if not comments or not _is_unresolvable_inline_comment_error(exc, path):
+                raise
+            fallback = {"event": event, "comments": [], "commit_id": commit_id,
+                        "body": inline_comments_as_review_body(body, comments)}
+            return self.request("POST", path, fallback)
 
 
 def github_safe_body(text: str, limit: int = 65000) -> str:
@@ -352,5 +361,3 @@ def sanitize_public_identity(text: str) -> str:
     for old, new in PUBLIC_IDENTITY_REPLACEMENTS:
         cleaned = cleaned.replace(old, new)
     return cleaned
-
-

@@ -43,7 +43,6 @@ from powershell_function_reachability_contract import (
     safe_manifest_source_path,
     safe_output_path,
     scalar,
-    sha256_file,
     write_json,
 )
 from powershell_function_reachability_parsing import (
@@ -57,7 +56,6 @@ from powershell_function_reachability_parsing import (
     fallback_function_keys,
     fallback_parse_source,
     has_dynamic_command_text,
-    mask_powershell_non_code,
     parse_sources as _parse_sources,
     powershell_backtick_tolerant_literal,
 )

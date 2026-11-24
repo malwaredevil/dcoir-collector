@@ -5,6 +5,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,7 @@ TOOL_PATH = (
     / 'tools'
     / 'materialize_agent_behavior_adapters.py'
 )
+sys.path.insert(0, str(TOOL_PATH.parent))
 SPEC = importlib.util.spec_from_file_location('behavior_adapter', TOOL_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError('Cannot load behavior adapter tool')

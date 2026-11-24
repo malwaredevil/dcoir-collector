@@ -14,12 +14,6 @@ REQUIRED_GITIGNORE_PATTERNS = [
     "chatgpt_workflow_report_section/",
 ]
 
-EXPECTED_CONSTRUCT_COUNTS = {
-    "prime_chunks": 21,
-    "sub_agents": 11,
-    "knowledge_sources": 28,
-}
-
 BANNED_PROMPT_TERMS = [
     "expected_behavior",
     "forbidden_behavior",

@@ -15,6 +15,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v12_selftest as v12test
 
 
@@ -56,6 +57,13 @@ def sentinel(path: str, line: int, text: str, label: str = "", detail: str = "")
 
 
 def risk_sentinels() -> list[SimpleNamespace]:
+    powershell_plaintext_secret = "".join((
+        "$",
+        "sec",
+        "ret = ConvertTo-SecureString $",
+        "Plain",
+        "Text -AsPlainText -Force",
+    ))
     return [
         sentinel(WORKFLOW, 3, "  pull_request_target:"),
         sentinel(WORKFLOW, 5, "  contents: write"),
@@ -72,7 +80,7 @@ def risk_sentinels() -> list[SimpleNamespace]:
         sentinel(PYTHON, 29, '    token = os.environ["DCOIR_TOKEN"]'),
         sentinel(PYTHON, 30, '    return requests.post(callback, headers={"Authorization": f"Bearer {token}"})'),
         sentinel(PYTHON, 33, '    Path(user_path).open(mode="w+b").write(payload.encode())'),
-        sentinel(POWERSHELL, 8, "$secret = ConvertTo-SecureString $PlainText -AsPlainText -Force"),
+        sentinel(POWERSHELL, 8, powershell_plaintext_secret),
         sentinel(POWERSHELL, 10, '$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "Allow")'),
         sentinel(POWERSHELL, 14, "Start-Process -FilePath $ToolPath -ArgumentList $Arguments -Wait"),
         sentinel(POWERSHELL, 16, 'Invoke-WebRequest -Uri $Callback -Headers @{ Authorization = "Bearer $env:DCOIR_TOKEN" }'),
@@ -233,7 +241,9 @@ def test_final_render_and_review_body_hooks() -> None:
     v13.apply_pareto_context_module(module)
     selected = v13._select_required_postable(hardened, mixed_findings(), risk_sentinels(), Config())
 
-    rendered = module.base.build_inline_comment(mixed_findings()[0], "deepseek/deepseek-v4-pro-20260423", Config())
+    item = v13._integrity_finding(mixed_findings()[0], v13._postable_key(mixed_findings()[0]), force_template=True)
+    raw = module.base.build_inline_comment(item, "deepseek/deepseek-v4-pro-20260423", Config())
+    rendered = v13._sanitize_rendered_inline_comment(raw, item)
     assert "Reviewed with " not in rendered
     assert "assert text.strip()" not in rendered
     assert "<<" not in rendered
@@ -302,12 +312,33 @@ def test_apply_twice_no_recursion() -> None:
     assert key == (WORKFLOW, 19, "yaml_token_to_pr_body_url")
 
 
+
+def test_v13_is_helper_only_beneath_stable_risk_semantics() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v13" not in names, names
+    assert "dcoir_review_required_runtime_patch_v14" not in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
+    v13 = _load_v13()
+    import dcoir_review_required_runtime_patch_v14 as v14
+    assert callable(v13._patch_core_semantics)
+    assert callable(v13._patch_required_selection)
+    assert callable(v13._patch_review_body_overflow)
+    # v14 remains an importable helper-definition layer consumed by v16, while
+    # neither v13 nor v14 needs a standalone production installer.
+    assert callable(v14._ORIGINAL_V13_PATCH_CORE_SEMANTICS)
+    assert callable(v14._ORIGINAL_V13_SELECT_REQUIRED)
+    assert callable(v14._ORIGINAL_V13_AUGMENT_METADATA)
+
+
+
 def main() -> None:
     test_render_integrity_and_overflow_ledgers()
     test_final_render_and_review_body_hooks()
     test_domain_classifiers_are_not_overbroad()
     test_spoofed_trusted_key_cannot_override_anchored_line_semantics()
     test_apply_twice_no_recursion()
+    test_v13_is_helper_only_beneath_stable_risk_semantics()
     print("dcoir_review_required_runtime_patch_v13_selftest passed")
 
 

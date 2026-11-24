@@ -220,7 +220,7 @@ def synthesize_fixes_for_findings(
     head_sha = str(pr.get("head", {}).get("sha", "") or "")
     if not head_sha:
         return enriched
-    max_findings = max(0, int(getattr(config, "fix_synthesis_max_findings", 8)))
+    max_findings = max(0, int(getattr(config, "fix_synthesis_max_findings", 12)))
     min_confidence = float(getattr(config, "fix_synthesis_min_confidence", 0.80))
     candidates: list[tuple[int, dict[str, Any]]] = []
     for index, finding in enumerate(enriched):
