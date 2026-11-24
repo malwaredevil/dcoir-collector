@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "45399804248",
   "github_sha": "5e646c712fa66dd2b6405fb181859071f8f4f428",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue608-slice7-native-green-20261124",
   "request_path": ".github/chatgpt_staging/exec_requests/issue608-slice7-native-green-20261124.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-11-24T13:05:43Z",
+  "updated_utc": "2026-11-24T13:05:47Z",
   "workflow": "chatgpt-exec"
 }
