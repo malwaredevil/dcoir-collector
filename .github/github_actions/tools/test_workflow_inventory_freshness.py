@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from lib.workflow_inventory_outputs import check_outputs, write_outputs
+from lib.workflow_inventory_core import build_inventory
 
 ROOT = Path(__file__).resolve().parents[3]
 MAINTENANCE_WORKFLOW = ROOT / ".github/workflows/reusable-workflow-maintenance-audit.yml"
+BUILDER = ROOT / ".github/github_actions/tools/build_workflow_inventory.py"
 INVENTORY_COMMAND_RE = re.compile(
     r"(?m)^\s*python3\s+\.github/github_actions/tools/build_workflow_inventory\.py(?:\s+--check)?\s*$"
 )
@@ -106,6 +110,90 @@ class ShippedWorkflowInventoryWiringTests(unittest.TestCase):
         self.assertIn("if ! git diff --quiet --", workflow)
         self.assertIn(".github/github_actions/workflow_inventory.json", workflow)
         self.assertIn(".github/github_actions/workflow_inventory.md", workflow)
+
+
+class ShippedInventoryCliTests(unittest.TestCase):
+    """Run the actual shipped CLI against disposable output files."""
+
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        self.json_path = root / "workflow_inventory.json"
+        self.markdown_path = root / "workflow_inventory.md"
+        self.inventory = build_inventory()
+        write_outputs(self.inventory, self.json_path, self.markdown_path)
+
+    def run_builder(self, *, check: bool) -> subprocess.CompletedProcess[str]:
+        command = [
+            sys.executable, str(BUILDER),
+            "--json-output", str(self.json_path),
+            "--markdown-output", str(self.markdown_path),
+        ]
+        if check:
+            command.append("--check")
+        return subprocess.run(
+            command, cwd=ROOT, capture_output=True, text=True,
+            check=False, timeout=90,
+        )
+
+    def bytes_or_none(self, path: Path) -> bytes | None:
+        return path.read_bytes() if path.exists() else None
+
+    def test_valid_outputs_pass_without_rewrite(self) -> None:
+        before = (self.json_path.read_bytes(), self.markdown_path.read_bytes())
+        result = self.run_builder(check=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            (self.json_path.read_bytes(), self.markdown_path.read_bytes()), before
+        )
+
+    def test_missing_single_or_both_outputs_fail_without_repair(self) -> None:
+        for missing in ("json", "markdown", "both"):
+            with self.subTest(missing=missing):
+                write_outputs(self.inventory, self.json_path, self.markdown_path)
+                if missing in ("json", "both"):
+                    self.json_path.unlink()
+                if missing in ("markdown", "both"):
+                    self.markdown_path.unlink()
+                before = (
+                    self.bytes_or_none(self.json_path),
+                    self.bytes_or_none(self.markdown_path),
+                )
+                result = self.run_builder(check=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("is missing", result.stdout + result.stderr)
+                self.assertEqual(
+                    (self.bytes_or_none(self.json_path), self.bytes_or_none(self.markdown_path)),
+                    before,
+                )
+
+    def test_stale_single_outputs_fail_without_repair(self) -> None:
+        for stale in ("json", "markdown"):
+            with self.subTest(stale=stale):
+                write_outputs(self.inventory, self.json_path, self.markdown_path)
+                path = self.json_path if stale == "json" else self.markdown_path
+                path.write_text("deliberately stale\n", encoding="utf-8")
+                before = (self.json_path.read_bytes(), self.markdown_path.read_bytes())
+                result = self.run_builder(check=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("is stale", result.stdout + result.stderr)
+                self.assertEqual(
+                    (self.json_path.read_bytes(), self.markdown_path.read_bytes()),
+                    before,
+                )
+
+    def test_deliberate_maintenance_generation_then_check_succeeds(self) -> None:
+        self.json_path.unlink()
+        self.markdown_path.unlink()
+        generation = self.run_builder(check=False)
+        self.assertEqual(generation.returncode, 0, generation.stdout + generation.stderr)
+        before = (self.json_path.read_bytes(), self.markdown_path.read_bytes())
+        result = self.run_builder(check=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            (self.json_path.read_bytes(), self.markdown_path.read_bytes()), before
+        )
 
 
 if __name__ == "__main__":
