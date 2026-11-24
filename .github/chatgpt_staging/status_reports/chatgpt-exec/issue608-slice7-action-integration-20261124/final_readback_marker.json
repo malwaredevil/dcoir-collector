@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue608-slice7-action-integration-20261124",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue608-slice7-action-integration-20261124",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "45401792339",
+  "github_run_attempt": "1",
+  "github_sha": "f6d64dabd6e446a330e32a17d6f942f0f7563111",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-11-24T13:17:27Z"
+}

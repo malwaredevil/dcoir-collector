@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-issue608-slice7-native-mutation-20261124",
+  "exit_code": "0",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "45400647013",
+  "github_sha": "07d872de2146e0c43653e23ec7590bd8fddd3fce",
+  "phase": "final-readback-commit",
+  "request_id": "issue608-slice7-native-mutation-20261124",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue608-slice7-native-mutation-20261124.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-11-24T13:10:55Z",
+  "workflow": "chatgpt-exec"
+}
