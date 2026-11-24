@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue608-pr672-slice6-exact-head-f523e48c",
+  "result": "failure",
+  "exit_code": "1",
+  "artifact_name": "chatgpt-exec-harness-failure-20261124T083829Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "45357408375",
+  "github_run_attempt": "1",
+  "github_sha": "2609e0a39c3830891914c0ee229f0bd7ea0c4ab3",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-11-24T08:38:33Z"
+}
