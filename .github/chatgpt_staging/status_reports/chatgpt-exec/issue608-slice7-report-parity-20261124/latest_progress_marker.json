@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "45405750447",
   "github_sha": "97a8b3a21525cab44aba49bd48922d4eeb737749",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue608-slice7-report-parity-20261124",
   "request_path": ".github/chatgpt_staging/exec_requests/issue608-slice7-report-parity-20261124.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-11-24T13:40:24Z",
+  "updated_utc": "2026-11-24T13:40:28Z",
   "workflow": "chatgpt-exec"
 }
