@@ -9,47 +9,7 @@ function Get-RepoRelativePath([string]$fullPath) {
   return $fullPath.Replace('\', '/')
 }
 
-function ConvertTo-MarkdownTableCell([object]$value) {
-  if ($null -eq $value) {
-    return ''
-  }
-  $text = [string]$value
-  $text = $text -replace "`r?`n", ' '
-  $text = $text.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
-  $text = $text.Replace('|', '&#124;').Replace('`', '&#96;')
-  return $text
-}
-
-function Resolve-CollectorReportPath([string]$pathValue, [string]$label, [string]$expectedSuffix) {
-  if ([string]::IsNullOrWhiteSpace($pathValue)) {
-    throw "$label output path is required."
-  }
-  $rawNormalized = $pathValue.Replace('\', '/')
-  if ($rawNormalized -match '[\x00-\x1F\x7F]') {
-    throw "$label output path must not contain control characters: $pathValue"
-  }
-  $normalized = $rawNormalized.Trim()
-  if ($normalized.StartsWith('/') -or $normalized -match '^[A-Za-z]:') {
-    throw "$label output path must be repo-relative: $pathValue"
-  }
-  if ($normalized -match '(^|/)\.\.($|/)') {
-    throw "$label output path must not contain traversal: $pathValue"
-  }
-  if (-not $normalized.StartsWith('project_sources/collector/', [System.StringComparison]::Ordinal)) {
-    throw "$label output path must stay under project_sources/collector/: $pathValue"
-  }
-  if (-not $normalized.EndsWith($expectedSuffix, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw "$label output path must end with ${expectedSuffix}: $pathValue"
-  }
-  $resolved = [System.IO.Path]::GetFullPath((Join-Path -Path (Get-Location).Path -ChildPath $normalized))
-  if (-not $resolved.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw "$label output path resolves outside the repository: $pathValue"
-  }
-  return [pscustomobject]@{
-    FullPath     = $resolved
-    RelativePath = $normalized
-  }
-}
+. (Join-Path -Path $PSScriptRoot -ChildPath 'DuplicateFunctionCheck.Paths.ps1')
 
 $jsonOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_JSON 'JSON' '.json'
 $markdownOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_MARKDOWN 'Markdown' '.md'
@@ -168,10 +128,9 @@ $report = [ordered]@{
   }
 }
 
-$jsonDir = Split-Path -Parent $jsonOutput.FullPath
-if ($jsonDir -and -not (Test-Path -LiteralPath $jsonDir)) {
-  New-Item -ItemType Directory -Force -Path $jsonDir | Out-Null
-}
+$jsonOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_JSON 'JSON' '.json'
+$null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($jsonOutput.FullPath))
+$jsonOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_JSON 'JSON' '.json'
 $report | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $jsonOutput.FullPath -Encoding utf8
 
 $markdownLines = [System.Collections.Generic.List[string]]::new()
@@ -223,10 +182,9 @@ if ($duplicates.Count -gt 0) {
   $markdownLines.Add('')
 }
 
-$markdownDir = Split-Path -Parent $markdownOutput.FullPath
-if ($markdownDir -and -not (Test-Path -LiteralPath $markdownDir)) {
-  New-Item -ItemType Directory -Force -Path $markdownDir | Out-Null
-}
+$markdownOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_MARKDOWN 'Markdown' '.md'
+$null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($markdownOutput.FullPath))
+$markdownOutput = Resolve-CollectorReportPath $env:DUPLICATE_FUNCTION_OUTPUT_MARKDOWN 'Markdown' '.md'
 ($markdownLines -join [Environment]::NewLine) + [Environment]::NewLine |
   Set-Content -LiteralPath $markdownOutput.FullPath -Encoding utf8
 
