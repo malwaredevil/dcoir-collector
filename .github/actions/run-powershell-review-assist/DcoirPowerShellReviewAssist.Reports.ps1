@@ -52,38 +52,15 @@ function Invoke-FunctionReachabilityReviewAssistGate {
 
 function Invoke-PowerShellReviewAssistReportGate {
   param(
-    [Parameter(Mandatory = $true)][string] $GeneratedJson,
-    [Parameter(Mandatory = $true)][string] $GeneratedMarkdown,
     [Parameter(Mandatory = $true)][string] $ReviewAssistJson,
-    [Parameter(Mandatory = $true)][string] $ReviewAssistMarkdown,
-    [Parameter(Mandatory = $true)][string] $MetadataWrapperScript
+    [Parameter(Mandatory = $true)][string] $ReviewAssistMarkdown
   )
 
-  if (-not (Test-Path -LiteralPath $MetadataWrapperScript)) {
-    throw "PowerShell review-assist metadata wrapper script was not found: $MetadataWrapperScript"
-  }
-
-  & python project_sources/collector/tools/run_powershell_review_assist_report.py --repo-root . --json-output $GeneratedJson --markdown-output $GeneratedMarkdown
+  & python project_sources/collector/tools/run_powershell_review_assist_report.py --repo-root . --artifact-behavior caller_uploaded_artifact --json-output $ReviewAssistJson --markdown-output $ReviewAssistMarkdown
   $exitCode = $LASTEXITCODE
-
-  if (-not (Test-Path -LiteralPath $GeneratedJson)) {
-    throw "PowerShell review-assist JSON report was not produced: $GeneratedJson"
+  if ($exitCode -ne 0) {
+    throw "PowerShell review-assist report generation failed with exit code $exitCode."
   }
-  if (-not (Test-Path -LiteralPath $GeneratedMarkdown)) {
-    throw "PowerShell review-assist Markdown report was not produced: $GeneratedMarkdown"
-  }
-
-  $env:REVIEW_ASSIST_GENERATED_JSON = $GeneratedJson
-  $env:REVIEW_ASSIST_TARGET_JSON = $ReviewAssistJson
-  $env:REVIEW_ASSIST_TARGET_MARKDOWN = $ReviewAssistMarkdown
-  & python $MetadataWrapperScript
-  $wrapExitCode = $LASTEXITCODE
-  if ($wrapExitCode -ne 0) {
-    throw "PowerShell review-assist workflow metadata wrapping failed with exit code $wrapExitCode."
-  }
-  Remove-Item -LiteralPath $GeneratedJson -Force -ErrorAction SilentlyContinue
-  Remove-Item -LiteralPath $GeneratedMarkdown -Force -ErrorAction SilentlyContinue
-
   if (-not (Test-Path -LiteralPath $ReviewAssistJson)) {
     throw "PowerShell review-assist JSON report was not produced: $ReviewAssistJson"
   }
@@ -92,8 +69,6 @@ function Invoke-PowerShellReviewAssistReportGate {
   }
 
   $report = Get-Content -LiteralPath $ReviewAssistJson -Raw | ConvertFrom-Json
-  Write-Host "review-assist-generated-json: $GeneratedJson"
-  Write-Host "review-assist-generated-markdown: $GeneratedMarkdown"
   Write-Host "review-assist-json: $ReviewAssistJson"
   Write-Host "review-assist-markdown: $ReviewAssistMarkdown"
   Write-Host "review-assist-workflow-behavior: $($report.artifact_contract.workflow_behavior)"
@@ -101,9 +76,6 @@ function Invoke-PowerShellReviewAssistReportGate {
   Write-Host "review-assist-normalized-findings: $($report.summary.normalized_finding_count)"
   Write-Host "review-assist-optional-analyzer-state: $($report.evidence_channels.analyzer.state)"
 
-  if ($exitCode -ne 0) {
-    throw "PowerShell review-assist report generation failed with exit code $exitCode."
-  }
   if ($report.validation.success -ne $true) {
     throw 'PowerShell review-assist report validation did not report success.'
   }
