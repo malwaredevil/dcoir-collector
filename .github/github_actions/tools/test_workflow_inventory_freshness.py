@@ -2,11 +2,18 @@
 """Hostile parity tests for the one canonical workflow-inventory freshness check."""
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from lib.workflow_inventory_outputs import check_outputs, write_outputs
+
+ROOT = Path(__file__).resolve().parents[3]
+MAINTENANCE_WORKFLOW = ROOT / ".github/workflows/reusable-workflow-maintenance-audit.yml"
+INVENTORY_COMMAND_RE = re.compile(
+    r"(?m)^\s*python3\s+\.github/github_actions/tools/build_workflow_inventory\.py(?:\s+--check)?\s*$"
+)
 
 
 class InventoryFreshnessTests(unittest.TestCase):
@@ -71,6 +78,34 @@ class InventoryFreshnessTests(unittest.TestCase):
         self.assertEqual(len(findings), 2)
         self.assertTrue(any("JSON is stale" in s for s in findings))
         self.assertTrue(any("Markdown is stale" in s for s in findings))
+
+
+class ShippedWorkflowInventoryWiringTests(unittest.TestCase):
+    def workflow_text(self) -> str:
+        return MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+
+    def test_only_read_only_inventory_command_is_executable(self) -> None:
+        workflow = self.workflow_text()
+        commands = [match.group().strip() for match in INVENTORY_COMMAND_RE.finditer(workflow)]
+        self.assertEqual(
+            commands,
+            ["python3 .github/github_actions/tools/build_workflow_inventory.py --check"],
+        )
+        self.assertNotIn("      - name: Regenerate workflow inventory", workflow)
+
+    def test_freshness_after_drift_before_contracts(self) -> None:
+        workflow = self.workflow_text()
+        names = (
+            "      - name: Check workflow consistency drift",
+            "      - name: Check workflow inventory freshness",
+            "      - name: Check workflow modularization contracts",
+            "      - name: Check reusable and composite contract posture",
+        )
+        indices = [workflow.index(name) for name in names]
+        self.assertEqual(indices, sorted(indices))
+        self.assertIn("if ! git diff --quiet --", workflow)
+        self.assertIn(".github/github_actions/workflow_inventory.json", workflow)
+        self.assertIn(".github/github_actions/workflow_inventory.md", workflow)
 
 
 if __name__ == "__main__":
