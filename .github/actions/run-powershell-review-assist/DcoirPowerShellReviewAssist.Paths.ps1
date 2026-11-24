@@ -75,8 +75,6 @@ function Resolve-ReviewAssistWorkflowPaths {
     FunctionReachabilityMarkdown = 'project_sources/collector/powershell_function_reachability_report.md'
     FunctionGeneratedJson = Assert-ReviewAssistFixedOutputPath -PathValue 'project_sources/collector/powershell_function_reachability_workflow_report.json' -ExpectedPath 'project_sources/collector/powershell_function_reachability_workflow_report.json' -ExpectedSuffix '.json' -Label 'Function reachability generated JSON'
     FunctionGeneratedMarkdown = Assert-ReviewAssistFixedOutputPath -PathValue 'project_sources/collector/powershell_function_reachability_workflow_report.md' -ExpectedPath 'project_sources/collector/powershell_function_reachability_workflow_report.md' -ExpectedSuffix '.md' -Label 'Function reachability generated Markdown'
-    GeneratedJson = Assert-ReviewAssistFixedOutputPath -PathValue 'project_sources/collector/powershell_review_assist_workflow_source_report.json' -ExpectedPath 'project_sources/collector/powershell_review_assist_workflow_source_report.json' -ExpectedSuffix '.json' -Label 'Review-assist generated JSON'
-    GeneratedMarkdown = Assert-ReviewAssistFixedOutputPath -PathValue 'project_sources/collector/powershell_review_assist_workflow_source_report.md' -ExpectedPath 'project_sources/collector/powershell_review_assist_workflow_source_report.md' -ExpectedSuffix '.md' -Label 'Review-assist generated Markdown'
     ReviewAssistJson = Assert-ReviewAssistOutputPath -PathValue $ReviewAssistJsonOutput -ExpectedSuffix '.json' -Label 'JSON'
     ReviewAssistMarkdown = Assert-ReviewAssistOutputPath -PathValue $ReviewAssistMarkdownOutput -ExpectedSuffix '.md' -Label 'Markdown'
   }
@@ -86,9 +84,6 @@ function Resolve-ReviewAssistWorkflowPaths {
   }
   if ($paths.FunctionGeneratedJson -eq $paths.FunctionGeneratedMarkdown) {
     throw 'PowerShell function reachability generated JSON and Markdown outputs must be different paths.'
-  }
-  if ($paths.GeneratedJson -eq $paths.GeneratedMarkdown) {
-    throw 'PowerShell review-assist generated JSON and Markdown outputs must be different paths.'
   }
   if (-not (Test-Path -LiteralPath $paths.FunctionReachabilityJson)) {
     throw "Committed PowerShell function reachability JSON report is required before regeneration: $($paths.FunctionReachabilityJson)"
@@ -107,8 +102,6 @@ function Clear-ReviewAssistWorkflowOutputs {
   $outputPaths = @(
     $Paths.FunctionGeneratedJson,
     $Paths.FunctionGeneratedMarkdown,
-    $Paths.GeneratedJson,
-    $Paths.GeneratedMarkdown,
     $Paths.ReviewAssistJson,
     $Paths.ReviewAssistMarkdown
   )
