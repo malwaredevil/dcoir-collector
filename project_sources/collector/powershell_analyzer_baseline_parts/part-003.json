@@ -4,21 +4,21 @@
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "f1d8d46c835cbc742fec1f9d08b8847a02d2d12a4befc82e56c86de7aa0315bc",
+      "fingerprint": "b7fcfad659b06f6c2da2832fa242245c435439d1b3aa1ee2d4d1a8e1458f5bcd",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 26. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "f569627e8788c32a992b6c705a437deb11fc93082dd4709aac595474ff422fde",
+      "fingerprint": "573a93a26d1aa1d9060eb0fa656c0d4d941e592b7a847acfaf47531b6c89a525",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 32. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "fa7f993b1825fe98808c4d17ae145cc1319651d4019270aae1626a73745d31c3",
+      "fingerprint": "545c1b17e86d3146f9c4cbb6f34d67debd32a56dcaa511a723d2211104affabd",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 100. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },

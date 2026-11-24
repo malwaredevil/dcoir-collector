@@ -1,0 +1,38 @@
+{
+  "description": "Immutable provenance for real pre-Slice-6 workflow artifacts; full original bytes retained in GitHub Actions run, not normalized or regenerated.",
+  "git_sha": "c8c76c5971b433c4c549c5c1d92740d085ab98a8",
+  "workflow_run_id": 45346645550,
+  "artifact_id": 14899540548,
+  "artifact_name": "validate-on-push-results",
+  "generated_at_utc": "2026-11-24T07:26:05+00:00",
+  "schema_version": "dcoir_powershell_review_assist_report_v1",
+  "artifact_behavior": "caller_uploaded_artifact",
+  "json": {
+    "artifact_entry": "collector/powershell_review_assist_workflow_report.json",
+    "size_bytes": 924944,
+    "sha256": "ff53ec039f97a44319cffb50aa39ec9f995dea6ec6728f971516dc49654a369e"
+  },
+  "markdown": {
+    "artifact_entry": "collector/powershell_review_assist_workflow_report.md",
+    "size_bytes": 164385,
+    "sha256": "f48f15612b8e41a9124720e4b1377e783ebb82b3709b590bbc3070b0e3fcfd04"
+  },
+  "golden_test_method": "Run the complete archived c8c76c59 report implementation and the unchanged legacy wrapper in an isolated interpreter at a frozen timestamp over identical source input, verify every archived file against its c8c76c59 Git blob SHA-1, and compare complete native JSON and Markdown bytes against that output. No normalization.",
+  "legacy_implementation": {
+    "directory": "project_sources/collector/fixtures/powershell_review_assist/issue608_slice6_legacy_c8c76c59",
+    "source_directory_at_git_sha": "project_sources/collector/tools",
+    "git_blob_sha1": {
+      "powershell_review_assist_builder.py": "b33ab2bdb766f25aefb82dc061e6f59ee0045d36",
+      "powershell_review_assist_common.py": "9784bdb56d2d4976d8f6014ea485615c0046e2cc",
+      "powershell_review_assist_contract.py": "0b6e4f76ce04de11d714c564c551ca5a7836d934",
+      "powershell_review_assist_evidence.py": "3479db32ac72473bd53343e65507470d9fbf5b08",
+      "powershell_review_assist_findings.py": "d24fa04b5768872efe7474bcbe03099cb7dc3158",
+      "powershell_review_assist_reachability_validator.py": "756f05f2065060c4e8eb27fc6b98a4e7a8980c37",
+      "powershell_review_assist_rendering.py": "9b708527db638c23eb0307918ba50a7d0f34477f",
+      "powershell_review_assist_sources.py": "1b777577bacfe7925569c677b5abca2d2c2247e3",
+      "powershell_review_assist_validators.py": "f5c746205b95bbbee940a597ec7a8dd96baadeec",
+      "run_powershell_review_assist_report.py": "edddec1cd4b2c1d4a9d31ea8a35472994f405f4f"
+    }
+  },
+  "legacy_wrapper_git_blob_sha1": "85ab09dfefc8a2dfa18313cedd8f96d03f3c4f44"
+}

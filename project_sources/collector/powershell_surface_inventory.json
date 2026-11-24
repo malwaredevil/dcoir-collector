@@ -937,9 +937,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 6452,
-      "line_count": 118,
-      "sha256": "a582c549d5a33b68c4556b035588b2942d5cab9b02a2a5431ee0fd94fa52ed0f"
+      "size_bytes": 5625,
+      "line_count": 111,
+      "sha256": "a5695f266dee543a6f1efa3fa9e36e8fd973696634555df5584f57ab905f5837"
     },
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
@@ -951,9 +951,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 7003,
-      "line_count": 132,
-      "sha256": "8b8171e7e89d456edb3fb03f376badd92f9f124c37890b97bb5cd6e409de0953"
+      "size_bytes": 5747,
+      "line_count": 104,
+      "sha256": "d44e9b90d80e11895b75c6c5175871e397a4c7909a993a597c3e81e7b3efe111"
     },
     {
       "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
@@ -965,9 +965,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 1076,
-      "line_count": 22,
-      "sha256": "fbff441a1ef736fc31e8575f6be3927d0d6fe0348f206a6302083449f44d5cbf"
+      "size_bytes": 880,
+      "line_count": 19,
+      "sha256": "31a601f4069766c99233a5cfd816cd4ca58c33ea64ddbff5cda26e7545ed5389"
     },
     {
       "path": ".github/actions/run-powershell-review-assist/action.yml",
