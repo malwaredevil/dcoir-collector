@@ -156,5 +156,83 @@ class NativeWorkflowModeTests(unittest.TestCase):
         self.assertEqual(args.retention_scope, "operator-controlled test retention")
 
 
+    def test_cli_rejects_invalid_behavior_and_retention(self):
+        for args in (
+            ["--artifact-behavior", "invalid"],
+            ["--retention-scope", "not legal in local mode"],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", ""],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", "  "],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", "bad\nline"],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", "bad\rline"],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", "bad\x01line"],
+            ["--artifact-behavior", "caller_uploaded_artifact", "--retention-scope", "bad\x7fline"],
+        ):
+            with self.subTest(args=args):
+                with self.assertRaises(SystemExit) as ctx:
+                    review.parse_args(args)
+                self.assertEqual(ctx.exception.code, 2)
+
+    def test_workflow_retention_override_matches_both_outputs(self):
+        retention = "operator-controlled upload window for Slice 6"
+        self.assertEqual(self.run_generator(
+            TARGET_JSON, TARGET_MARKDOWN,
+            "--artifact-behavior", "caller_uploaded_artifact",
+            "--retention-scope", retention,
+        ), 0)
+        json_bytes, md_bytes = self.read_report_pair(TARGET_JSON, TARGET_MARKDOWN)
+        report = json.loads(json_bytes)
+        self.assertEqual(report["artifact_contract"]["retention_scope"], retention)
+        self.assertEqual(report["artifact_contract"]["workflow_behavior"], "caller_uploaded_artifact")
+        text = md_bytes.decode("utf-8")
+        self.assertEqual(text.count("- Workflow behavior: "), 1)
+        self.assertIn("- Retention scope: " + retention, text)
+
+    def test_no_write_leaves_existing_artifacts_untouched(self):
+        j_path = self.root / TARGET_JSON
+        m_path = self.root / TARGET_MARKDOWN
+        j_path.write_bytes(b"safe-json-marker")
+        m_path.write_bytes(b"safe-markdown-marker")
+        for mode in ("none", "caller_uploaded_artifact"):
+            with self.subTest(mode=mode):
+                self.assertEqual(
+                    self.run_generator(TARGET_JSON, TARGET_MARKDOWN,
+                                       "--artifact-behavior", mode, "--no-write"), 0)
+                self.assertEqual(j_path.read_bytes(), b"safe-json-marker")
+                self.assertEqual(m_path.read_bytes(), b"safe-markdown-marker")
+
+    def test_workflow_mode_rejects_unsafe_output_locations(self):
+        cases = (
+            ("../outside.json", TARGET_MARKDOWN),
+            ("/outside.json", TARGET_MARKDOWN),
+            ("project_sources/collector/fault.txt", TARGET_MARKDOWN),
+            (".github/workflows/escape.json", TARGET_MARKDOWN),
+            (TARGET_JSON, ".github/workflows/escape.md"),
+        )
+        for json_name, markdown_name in cases:
+            with self.subTest(json_name=json_name, markdown_name=markdown_name):
+                self.assertEqual(self.run_generator(
+                    json_name, markdown_name,
+                    "--artifact-behavior", "caller_uploaded_artifact"), 1)
+                self.assertFalse((self.root.parent / "outside.json").exists())
+                self.assertFalse((self.root / ".github/workflows/escape.json").exists())
+                self.assertFalse((self.root / ".github/workflows/escape.md").exists())
+
+    def test_shipped_action_requires_single_native_invocation_no_wrapper(self):
+        action = REPO_ROOT / ".github/actions/run-powershell-review-assist"
+        reports = (action / "DcoirPowerShellReviewAssist.Reports.ps1").read_text(encoding="utf-8")
+        entry = (action / "Invoke-DcoirPowerShellReviewAssist.ps1").read_text(encoding="utf-8")
+        self.assertIn("--artifact-behavior caller_uploaded_artifact", reports)
+        self.assertEqual(reports.count("run_powershell_review_assist_report.py"), 1)
+        self.assertNotIn("MetadataWrapperScript", reports + entry)
+        self.assertNotIn("REVIEW_ASSIST_GENERATED_JSON", reports)
+        self.assertNotIn("REVIEW_ASSIST_TARGET_JSON", reports)
+        self.assertNotIn("REVIEW_ASSIST_TARGET_MARKDOWN", reports)
+        self.assertFalse((action / "wrap_review_assist_workflow_report.py").exists())
+        self.assertIn("review-assist-validation-success:", reports)
+        self.assertIn("review-assist-workflow-behavior:", reports)
+        self.assertLess(entry.index("Invoke-FunctionReachabilityReviewAssistGate"),
+                        entry.index("Invoke-PowerShellReviewAssistReportGate"))
+
+
 if __name__ == "__main__":
     unittest.main()
