@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "45395385278",
   "github_sha": "7d45e89883e57f83a454ceabb1a6096964268ad3",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue608-slice7-baseline-report-parity-20261124-v2",
   "request_path": ".github/chatgpt_staging/exec_requests/issue608-slice7-baseline-report-parity-20261124-v2.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-11-24T12:38:13Z",
+  "updated_utc": "2026-11-24T12:38:17Z",
   "workflow": "chatgpt-exec"
 }
