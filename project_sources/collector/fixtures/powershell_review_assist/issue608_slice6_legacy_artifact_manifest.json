@@ -1,0 +1,21 @@
+{
+  "description": "Immutable provenance for real pre-Slice-6 workflow artifacts; full original bytes retained in GitHub Actions run, not normalized or regenerated.",
+  "git_sha": "c8c76c5971b433c4c549c5c1d92740d085ab98a8",
+  "workflow_run_id": 45346645550,
+  "artifact_id": 14899540548,
+  "artifact_name": "validate-on-push-results",
+  "generated_at_utc": "2026-11-24T07:26:05+00:00",
+  "schema_version": "dcoir_powershell_review_assist_report_v1",
+  "artifact_behavior": "caller_uploaded_artifact",
+  "json": {
+    "artifact_entry": "collector/powershell_review_assist_workflow_report.json",
+    "size_bytes": 924944,
+    "sha256": "ff53ec039f97a44319cffb50aa39ec9f995dea6ec6728f971516dc49654a369e"
+  },
+  "markdown": {
+    "artifact_entry": "collector/powershell_review_assist_workflow_report.md",
+    "size_bytes": 164385,
+    "sha256": "f48f15612b8e41a9124720e4b1377e783ebb82b3709b590bbc3070b0e3fcfd04"
+  },
+  "golden_test_method": "Use exact unchanged legacy wrapper fixture to generate full expected JSON and Markdown bytes at same timestamp and identical source input, compare against native output byte arrays. No normalization."
+}
