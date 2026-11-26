@@ -3,6 +3,16 @@
 Status: active governance rule.
 Tracking issue: #460.
 
+## Standing operator opt-out: OpenRouter/DCOIR Review (2026-11-18)
+
+The operator has disabled **all paid OpenRouter/DCOIR Review PR reviews** in `malwaredevil/dcoir-collector` until the operator explicitly reverses this standing decision. This applies to every agent/runtime, PR, branch, and review variant, including `/dcoir-review`, `/or-review`, `/openrouter-review`, reruns, equivalent aliases, and their automation. **Do not invoke, trigger, post, schedule, propose, recommend, or ask permission to run these reviews while this opt-out is active.** Treat the OpenRouter internal review gate as waived/not applicable, never as a prerequisite for marking Ready, reviewing, or merging.
+
+A generic `proceed`, approval to review/fix, Ready transition, or merge authorization **does not** revoke this opt-out. Only a new, explicit operator direction to re-enable OpenRouter/DCOIR Review restores the dormant exact-command approval policy below. Older instructions, workflow sequencing, legacy core-reference snapshots, scenario rules, and review checklists that mention this as a mandatory or next gate are superseded for this repository while opted out.
+
+Continue the required internal Prog/Adva adversarial review where applicable, the operator-controlled GitHub Copilot review/fix process, fail-closed static analysis and other GitHub Actions/CodeQL/security/Windows checks, exact-head readback, review-thread disposition, and separate approval for Ready, merge, and issue closure. **Do not silently substitute another paid review service.** This policy does not disable or modify any review workflow implementation; it governs whether agents invoke the service.
+
+Persistent operational preference: `ircore.operator_preferences` key `dcoir_pr_openrouter_review_disabled_until_operator_revokes` (active, priority 300).
+
 ## Hard rule
 
 Review-trigger requests are operator-controlled.
